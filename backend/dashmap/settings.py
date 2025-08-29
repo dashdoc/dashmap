@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'accounts',
     'companies',
     'vehicles',
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -128,3 +130,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React default
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite default
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow all origins in development (you may want to restrict this in production)
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True

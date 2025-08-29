@@ -1,35 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { Spinner, Center } from '@chakra-ui/react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthPage } from './components/auth/AuthPage';
+import { Layout } from './components/layout/Layout';
+import { VehicleManagement } from './components/vehicles/VehicleManagement';
 
-function App() {
-  const [count, setCount] = useState(0)
+const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <Center h="100vh">
+        <Spinner size="xl" />
+      </Center>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Layout>
+      <VehicleManagement />
+    </Layout>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;

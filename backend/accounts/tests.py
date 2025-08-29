@@ -234,3 +234,140 @@ class AuthTokenModelTestCase(TestCase):
         token = AuthToken.objects.create(user=self.user)
         expected_str = f"Token for {self.user.username}"
         self.assertEqual(str(token), expected_str)
+
+class RegisterViewTestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(
+            name='Test Company',
+            address='123 Test St',
+            phone='555-1234',
+            email='test@company.com'
+        )
+        
+        self.valid_registration_data = {
+            'username': 'newuser',
+            'password': 'newpass123',
+            'email': 'newuser@example.com',
+            'first_name': 'New',
+            'last_name': 'User',
+            'company_name': 'New Company',
+            'company_address': '456 New St',
+            'company_phone': '555-5678',
+            'company_email': 'new@company.com'
+        }
+    
+    def test_register_success(self):
+        response = self.client.post('/api/auth/register/',
+            data=json.dumps(self.valid_registration_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        
+        self.assertIn('User registered successfully', data['message'])
+        self.assertEqual(data['username'], 'newuser')
+        self.assertIn('user_id', data)
+        
+        # Verify user was created
+        user = User.objects.get(username='newuser')
+        self.assertEqual(user.email, 'newuser@example.com')
+        self.assertEqual(user.first_name, 'New')
+        self.assertEqual(user.last_name, 'User')
+        
+        # Verify user profile was created with new company
+        profile = UserProfile.objects.get(user=user)
+        self.assertEqual(profile.company.name, 'New Company')
+        self.assertEqual(profile.company.address, '456 New St')
+        self.assertEqual(profile.company.phone, '555-5678')
+        self.assertEqual(profile.company.email, 'new@company.com')
+        
+    def test_register_missing_fields(self):
+        incomplete_data = {
+            'username': 'newuser',
+            'password': 'newpass123'
+            # Missing required fields
+        }
+        
+        response = self.client.post('/api/auth/register/',
+            data=json.dumps(incomplete_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn('All fields are required', data['error'])
+        
+    def test_register_duplicate_username(self):
+        # Create existing user
+        User.objects.create_user(
+            username='existinguser',
+            password='pass123',
+            email='existing@example.com'
+        )
+        
+        duplicate_data = self.valid_registration_data.copy()
+        duplicate_data['username'] = 'existinguser'
+        duplicate_data['email'] = 'different@example.com'
+        
+        response = self.client.post('/api/auth/register/',
+            data=json.dumps(duplicate_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn('Username already exists', data['error'])
+        
+    def test_register_duplicate_email(self):
+        # Create existing user
+        User.objects.create_user(
+            username='existinguser',
+            password='pass123',
+            email='existing@example.com'
+        )
+        
+        duplicate_data = self.valid_registration_data.copy()
+        duplicate_data['username'] = 'differentuser'
+        duplicate_data['email'] = 'existing@example.com'
+        
+        response = self.client.post('/api/auth/register/',
+            data=json.dumps(duplicate_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn('Email already exists', data['error'])
+        
+    def test_register_invalid_json(self):
+        response = self.client.post('/api/auth/register/',
+            data='invalid json{',
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn('Invalid JSON', data['error'])
+        
+    def test_register_no_authentication_required(self):
+        # Registration should work without authentication
+        response = self.client.post('/api/auth/register/',
+            data=json.dumps(self.valid_registration_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 201)
+        
+    def test_register_password_hashing(self):
+        response = self.client.post('/api/auth/register/',
+            data=json.dumps(self.valid_registration_data),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 201)
+        
+        # Verify password is hashed
+        user = User.objects.get(username='newuser')
+        self.assertNotEqual(user.password, 'newpass123')  # Should be hashed
+        self.assertTrue(user.check_password('newpass123'))  # But should validate

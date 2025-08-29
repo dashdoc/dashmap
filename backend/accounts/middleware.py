@@ -7,8 +7,8 @@ class TokenAuthenticationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Skip authentication for login endpoints and admin
-        skip_auth_paths = ['/api/auth/login/', '/admin/']
+        # Skip authentication for login, register, and admin
+        skip_auth_paths = ['/api/auth/login/', '/api/auth/register/', '/admin/']
         
         if any(request.path.startswith(path) for path in skip_auth_paths):
             return self.get_response(request)
