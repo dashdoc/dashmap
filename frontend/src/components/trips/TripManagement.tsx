@@ -19,9 +19,10 @@ import {
   IconButton,
   Text,
 } from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
 import { TripForm } from './TripForm';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { TripDetailsDrawer } from './TripDetailsDrawer';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -62,9 +63,11 @@ export const TripManagement: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [tripToDelete, setTripToDelete] = useState<Trip | null>(null);
+  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
   
   const { isOpen: isFormOpen, onOpen: onFormOpen, onClose: onFormClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
   
   const { user } = useAuth();
 
@@ -98,6 +101,11 @@ export const TripManagement: React.FC = () => {
   const handleEditTrip = (trip: Trip) => {
     setSelectedTrip(trip);
     onFormOpen();
+  };
+
+  const handleViewDetails = (trip: Trip) => {
+    setActiveTrip(trip);
+    onDetailsOpen();
   };
 
   const handleDeleteClick = (trip: Trip) => {
@@ -197,6 +205,12 @@ export const TripManagement: React.FC = () => {
                   <Td>
                     <HStack spacing={2}>
                       <IconButton
+                        aria-label="View details"
+                        icon={<ViewIcon />}
+                        size="sm"
+                        onClick={() => handleViewDetails(trip)}
+                      />
+                      <IconButton
                         aria-label="Edit trip"
                         icon={<EditIcon />}
                         size="sm"
@@ -231,6 +245,13 @@ export const TripManagement: React.FC = () => {
         onClose={onDeleteClose}
         onConfirm={handleDeleteConfirm}
         tripName={tripToDelete ? tripToDelete.name : ''}
+      />
+
+      <TripDetailsDrawer
+        isOpen={isDetailsOpen}
+        onClose={onDetailsClose}
+        trip={activeTrip}
+        onTripUpdated={fetchTrips}
       />
     </Box>
   );
