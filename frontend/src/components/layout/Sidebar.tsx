@@ -1,5 +1,13 @@
 import React from "react";
-import { Box, Flex, Heading, Button, Text, Spacer, VStack } from "@chakra-ui/react";
+import {
+  Box,
+  Flex,
+  Heading,
+  Button,
+  Text,
+  Spacer,
+  VStack,
+} from "@chakra-ui/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -21,7 +29,13 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <Box bg="blue.900" w="250px" flexShrink={0} p={6} shadow="lg">
+    <Box
+      bgGradient="linear(to-tr, blue.900, purple.700)"
+      w="250px"
+      flexShrink={0}
+      p={6}
+      shadow="lg"
+    >
       <Flex direction="column" h="100%">
         <Heading size="lg" color="white" mb={8}>
           Dashmap

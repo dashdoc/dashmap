@@ -43,15 +43,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      if (storedToken) {
+        setToken(storedToken);
+        axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`;
+        
+        // First set the user from localStorage as fallback
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+        
+        // Then try to refresh user data from server
+        try {
+          const response = await axios.get(`${API_BASE_URL}/auth/profile/`);
+          const userData: User = response.data;
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch (error: any) {
+          console.error('Failed to fetch user profile:', error);
+          
+          // Only clear auth if the token is invalid (401/403)
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            delete axios.defaults.headers.common['Authorization'];
+            setToken(null);
+            setUser(null);
+          }
+          // For other errors (network issues, server down, etc.), keep the user logged in with cached data
+        }
+      }
+      setLoading(false);
+    };
     
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`;
-    }
-    setLoading(false);
+    initializeAuth();
   }, []);
 
   const login = async (username: string, password: string) => {
