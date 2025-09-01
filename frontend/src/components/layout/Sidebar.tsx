@@ -16,6 +16,7 @@ export const Sidebar: React.FC = () => {
     { name: "Map", path: "/map" },
     { name: "Trips", path: "/trips" },
     { name: "Vehicles", path: "/vehicles" },
+    { name: "Stops", path: "/stops" },
     { name: "Settings", path: "/settings" },
   ];
 

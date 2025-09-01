@@ -4,6 +4,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.core.mail import send_mail
 import json
+import random
+from faker import Faker
 from .models import Stop, Trip, TripStop
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -452,3 +454,56 @@ class TripStopDetailView(View):
         
         trip_stop.delete()
         return JsonResponse({}, status=204)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GetOrdersView(View):
+    def post(self, request):
+        """Generate random orders (stops) with faker data"""
+        try:
+            fake = Faker()
+            
+            # Generate 3-8 random orders
+            num_orders = random.randint(3, 8)
+            created_stops = []
+            
+            for i in range(num_orders):
+                # Randomly choose stop type
+                stop_type = random.choice(['loading', 'unloading'])
+                
+                # Generate realistic business names and addresses
+                if stop_type == 'loading':
+                    name_prefixes = ['Warehouse', 'Distribution Center', 'Loading Dock', 'Supply Hub']
+                    name = f"{random.choice(name_prefixes)} {fake.random_letter().upper()}"
+                else:
+                    name_prefixes = ['Store', 'Market', 'Shop', 'Outlet', 'Center']
+                    name = f"{fake.company()} {random.choice(name_prefixes)}"
+                
+                # Create the stop
+                stop = Stop.objects.create(
+                    name=name,
+                    address=f"{fake.street_address()}, {fake.city()}, {fake.state_abbr()} {fake.zipcode()}",
+                    stop_type=stop_type,
+                    contact_name=fake.name(),
+                    contact_phone=fake.phone_number()[:15],  # Limit to 15 chars to fit model
+                    notes=fake.sentence() if random.choice([True, False]) else ""
+                )
+                
+                created_stops.append({
+                    'id': stop.id,
+                    'name': stop.name,
+                    'address': stop.address,
+                    'stop_type': stop.stop_type,
+                    'contact_name': stop.contact_name,
+                    'contact_phone': stop.contact_phone,
+                    'notes': stop.notes,
+                    'created_at': stop.created_at.isoformat(),
+                    'updated_at': stop.updated_at.isoformat()
+                })
+            
+            return JsonResponse({
+                'message': f'Successfully created {num_orders} new orders',
+                'created_stops': created_stops
+            }, status=201)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

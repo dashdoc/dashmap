@@ -141,3 +141,108 @@ def get_user_from_token(request):
         except AuthToken.DoesNotExist:
             return None
     return None
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UserProfileUpdateView(View):
+    def put(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+        
+        try:
+            data = json.loads(request.body)
+            
+            # Update user fields if provided
+            if 'username' in data:
+                # Check if username is already taken by another user
+                if User.objects.filter(username=data['username']).exclude(id=user.id).exists():
+                    return JsonResponse({'error': 'Username already exists'}, status=400)
+                user.username = data['username']
+            
+            if 'email' in data:
+                # Check if email is already taken by another user
+                if User.objects.filter(email=data['email']).exclude(id=user.id).exists():
+                    return JsonResponse({'error': 'Email already exists'}, status=400)
+                user.email = data['email']
+            
+            if 'first_name' in data:
+                user.first_name = data['first_name']
+            
+            if 'last_name' in data:
+                user.last_name = data['last_name']
+            
+            user.save()
+            
+            # Return updated user data
+            response_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            }
+            
+            # Add company info if user has profile
+            try:
+                profile = user.profile
+                response_data.update({
+                    'company_id': profile.company.id,
+                    'company_name': profile.company.name
+                })
+            except:
+                pass
+            
+            return JsonResponse(response_data)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': 'Update failed'}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CompanyUpdateView(View):
+    def put(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+        
+        try:
+            # Get user's company
+            profile = user.profile
+            company = profile.company
+        except:
+            return JsonResponse({'error': 'User has no associated company'}, status=400)
+        
+        try:
+            data = json.loads(request.body)
+            
+            # Update company fields if provided
+            if 'company_name' in data:
+                company.name = data['company_name']
+            
+            if 'company_email' in data:
+                company.email = data['company_email']
+            
+            if 'company_phone' in data:
+                company.phone = data['company_phone']
+            
+            if 'company_address' in data:
+                company.address = data['company_address']
+            
+            company.save()
+            
+            # Return updated company data
+            return JsonResponse({
+                'id': company.id,
+                'name': company.name,
+                'email': company.email,
+                'phone': company.phone,
+                'address': company.address,
+                'created_at': company.created_at.isoformat(),
+                'updated_at': company.updated_at.isoformat()
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': 'Update failed'}, status=500)

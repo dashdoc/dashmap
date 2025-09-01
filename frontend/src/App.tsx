@@ -5,6 +5,8 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthPage } from './components/auth/AuthPage';
 import { Layout } from './components/layout/Layout';
 import { VehicleManagement } from './components/vehicles/VehicleManagement';
+import { StopManagement } from './components/stops/StopManagement';
+import { Settings } from './components/settings/Settings';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
@@ -28,7 +30,8 @@ const AppContent: React.FC = () => {
         <Route path="/map" element={<div>Map Component Coming Soon</div>} />
         <Route path="/trips" element={<div>Trips Component Coming Soon</div>} />
         <Route path="/vehicles" element={<VehicleManagement />} />
-        <Route path="/settings" element={<div>Settings Component Coming Soon</div>} />
+        <Route path="/stops" element={<StopManagement />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>
   );

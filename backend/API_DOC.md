@@ -47,6 +47,62 @@ Response:
 }
 ```
 
+### Update User Profile
+**PUT** `/api/auth/profile/`
+
+Updates the current user's profile information. Requires authentication token.
+
+Request:
+```json
+{
+  "username": "new_username",
+  "email": "new_email@example.com", 
+  "first_name": "NewFirst",
+  "last_name": "NewLast"
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "username": "new_username",
+  "email": "new_email@example.com",
+  "first_name": "NewFirst", 
+  "last_name": "NewLast",
+  "company_id": 1,
+  "company_name": "ACME Logistics"
+}
+```
+
+### Update Company Settings
+**PUT** `/api/auth/company/`
+
+Updates the current user's company information. Requires authentication token.
+
+Request:
+```json
+{
+  "company_name": "New Company Name",
+  "company_email": "contact@newcompany.com",
+  "company_phone": "555-9999", 
+  "company_address": "456 New Business Ave"
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "name": "New Company Name", 
+  "email": "contact@newcompany.com",
+  "phone": "555-9999",
+  "address": "456 New Business Ave",
+  "created_at": "2024-01-15T08:00:00Z",
+  "updated_at": "2024-01-20T10:30:00Z"
+}
+```
+
 ### Using the Token
 Include the token in the `Authorization` header for all API requests:
 
@@ -145,6 +201,36 @@ All list endpoints return data in this format:
 ```
 
 **Stop Types:** `"loading"` or `"unloading"`
+
+### Get Orders (Generate Random Stops)
+- **POST** `/api/stops/get-orders/` - Generate 3-8 random stops with faker data
+
+**Response:**
+```json
+{
+  "message": "Successfully created 5 new orders",
+  "created_stops": [
+    {
+      "id": 10,
+      "name": "Warehouse C",
+      "address": "789 Industrial Blvd, Springfield, IL 62701",
+      "stop_type": "loading",
+      "contact_name": "Mike Johnson",
+      "contact_phone": "555-0123",
+      "notes": "Use loading bay 3",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+This endpoint simulates incoming orders by creating random stops with realistic data including:
+- Warehouse/distribution centers for loading stops
+- Customer sites/stores for unloading stops  
+- Realistic addresses with city, state, zip
+- Contact names and phone numbers
+- Optional notes
 
 ## Trips
 

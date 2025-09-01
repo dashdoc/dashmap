@@ -282,3 +282,82 @@ class TripStopAPITestCase(TripsAPITestCase):
         
         # Verify deletion
         self.assertFalse(TripStop.objects.filter(id=self.trip_stop.id).exists())
+
+class GetOrdersAPITestCase(TripsAPITestCase):
+    def test_get_orders_success(self):
+        """Test that the get orders endpoint creates random stops successfully"""
+        initial_stop_count = Stop.objects.count()
+        
+        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        self.assertEqual(response.status_code, 201)
+        
+        data = response.json()
+        self.assertIn('message', data)
+        self.assertIn('created_stops', data)
+        
+        # Verify that stops were created
+        new_stop_count = Stop.objects.count()
+        created_count = len(data['created_stops'])
+        self.assertEqual(new_stop_count, initial_stop_count + created_count)
+        self.assertTrue(3 <= created_count <= 8)  # Should create 3-8 stops
+        
+        # Verify structure of created stops
+        for stop_data in data['created_stops']:
+            self.assertIn('id', stop_data)
+            self.assertIn('name', stop_data)
+            self.assertIn('address', stop_data)
+            self.assertIn('stop_type', stop_data)
+            self.assertIn('contact_name', stop_data)
+            self.assertIn('contact_phone', stop_data)
+            self.assertIn('created_at', stop_data)
+            
+            # Verify stop_type is valid
+            self.assertIn(stop_data['stop_type'], ['loading', 'unloading'])
+            
+            # Verify required fields are not empty
+            self.assertTrue(stop_data['name'])
+            self.assertTrue(stop_data['address'])
+            self.assertTrue(stop_data['contact_name'])
+            
+    def test_get_orders_creates_realistic_data(self):
+        """Test that generated data is realistic"""
+        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        self.assertEqual(response.status_code, 201)
+        
+        data = response.json()
+        created_stops = data['created_stops']
+        
+        # Check that we have both loading and unloading stops (with reasonable probability)
+        stop_types = [stop['stop_type'] for stop in created_stops]
+        # We can't guarantee both types in every run due to randomness, but verify valid types
+        for stop_type in stop_types:
+            self.assertIn(stop_type, ['loading', 'unloading'])
+            
+        # Verify name patterns are reasonable
+        for stop in created_stops:
+            if stop['stop_type'] == 'loading':
+                # Loading stops should have warehouse-like names
+                name_lower = stop['name'].lower()
+                self.assertTrue(any(word in name_lower for word in 
+                    ['warehouse', 'distribution', 'loading', 'supply']))
+            else:
+                # Unloading stops should have store/customer-like names
+                # Just verify they have some text (company names are varied)
+                self.assertTrue(len(stop['name']) > 0)
+                
+        # Verify addresses have proper format (street, city, state zip)
+        for stop in created_stops:
+            address = stop['address']
+            self.assertIn(',', address)  # Should have commas separating parts
+            parts = address.split(',')
+            self.assertTrue(len(parts) >= 3)  # street, city, state zip
+            
+    def test_get_orders_phone_length_constraint(self):
+        """Test that phone numbers are properly truncated to fit model constraints"""
+        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        self.assertEqual(response.status_code, 201)
+        
+        data = response.json()
+        for stop in data['created_stops']:
+            # Phone field has max_length=20 in model, API truncates to 15
+            self.assertTrue(len(stop['contact_phone']) <= 15)
