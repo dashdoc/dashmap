@@ -6,6 +6,7 @@ import { AuthPage } from './components/auth/AuthPage';
 import { Layout } from './components/layout/Layout';
 import { VehicleManagement } from './components/vehicles/VehicleManagement';
 import { StopManagement } from './components/stops/StopManagement';
+import { TripManagement } from './components/trips/TripManagement';
 import { Settings } from './components/settings/Settings';
 
 const AppContent: React.FC = () => {
@@ -28,7 +29,7 @@ const AppContent: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/map" replace />} />
         <Route path="/map" element={<div>Map Component Coming Soon</div>} />
-        <Route path="/trips" element={<div>Trips Component Coming Soon</div>} />
+        <Route path="/trips" element={<TripManagement />} />
         <Route path="/vehicles" element={<VehicleManagement />} />
         <Route path="/stops" element={<StopManagement />} />
         <Route path="/settings" element={<Settings />} />

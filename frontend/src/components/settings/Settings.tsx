@@ -21,7 +21,7 @@ import axios from 'axios';
 const API_BASE_URL = 'http://localhost:8000/api';
 
 export const Settings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   const [userSettings, setUserSettings] = useState({
     username: user?.username || '',
@@ -72,8 +72,8 @@ export const Settings: React.FC = () => {
         }
       });
       
-      // Update local storage with new user data
-      localStorage.setItem('user', JSON.stringify(response.data));
+      // Update user context with new user data
+      updateUser(response.data);
       
       setUserSuccess('User settings updated successfully!');
     } catch (err: any) {
@@ -97,6 +97,15 @@ export const Settings: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
+      
+      // Update user context with new company name
+      if (user) {
+        const updatedUser = {
+          ...user,
+          company_name: response.data.name
+        };
+        updateUser(updatedUser);
+      }
       
       setCompanySuccess('Company settings updated successfully!');
     } catch (err: any) {
