@@ -6,6 +6,7 @@ from django.core.mail import send_mail
 import json
 import random
 from faker import Faker
+from datetime import datetime, date, time
 from .models import Stop, Trip, TripStop
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -245,8 +246,22 @@ class TripDetailView(View):
             trip.dispatcher_id = data.get('dispatcher', trip.dispatcher_id)
             trip.name = data.get('name', trip.name)
             trip.status = data.get('status', trip.status)
-            trip.planned_start_date = data.get('planned_start_date', trip.planned_start_date)
-            trip.planned_start_time = data.get('planned_start_time', trip.planned_start_time)
+            
+            # Parse date and time strings if provided
+            if 'planned_start_date' in data:
+                planned_start_date = data['planned_start_date']
+                if isinstance(planned_start_date, str):
+                    trip.planned_start_date = datetime.strptime(planned_start_date, '%Y-%m-%d').date()
+                else:
+                    trip.planned_start_date = planned_start_date
+            
+            if 'planned_start_time' in data:
+                planned_start_time = data['planned_start_time']
+                if isinstance(planned_start_time, str):
+                    trip.planned_start_time = datetime.strptime(planned_start_time, '%H:%M:%S').time()
+                else:
+                    trip.planned_start_time = planned_start_time
+            
             trip.notes = data.get('notes', trip.notes)
             trip.save()
             
