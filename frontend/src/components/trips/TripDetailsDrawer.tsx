@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Drawer,
   DrawerBody,
@@ -26,16 +26,16 @@ import {
   IconButton,
   Alert,
   AlertIcon,
-} from '@chakra-ui/react';
-import { DeleteIcon } from '@chakra-ui/icons';
-import axios from 'axios';
+} from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
+import axios from "axios";
 
 interface Trip {
   id: number;
   vehicle: number;
   vehicle_license_plate: string;
   name: string;
-  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  status: "draft" | "planned" | "in_progress" | "completed" | "cancelled";
   planned_start_date: string;
   planned_start_time: string;
   notes: string;
@@ -60,7 +60,7 @@ interface TripDetailsDrawerProps {
   onTripUpdated: () => void;
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = "http://localhost:8000/api";
 
 export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   isOpen,
@@ -69,17 +69,17 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   onTripUpdated,
 }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    vehicle: '',
-    status: 'draft' as Trip['status'],
-    planned_start_date: '',
-    planned_start_time: '',
-    notes: '',
+    name: "",
+    vehicle: "",
+    status: "draft" as Trip["status"],
+    planned_start_date: "",
+    planned_start_time: "",
+    notes: "",
   });
   const [tripStops, setTripStops] = useState<TripStop[]>([]);
   const [stops, setStops] = useState<Stop[]>([]);
-  const [newStop, setNewStop] = useState({ stopId: '', time: '' });
-  const [error, setError] = useState('');
+  const [newStop, setNewStop] = useState({ stopId: "", time: "" });
+  const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -94,11 +94,11 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
         status: data.status,
         planned_start_date: data.planned_start_date,
         planned_start_time: data.planned_start_time,
-        notes: data.notes || '',
+        notes: data.notes || "",
       });
       setTripStops(data.trip_stops || []);
     } catch (err) {
-      console.error('Error fetching trip details:', err);
+      console.error("Error fetching trip details:", err);
     }
   };
 
@@ -107,7 +107,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       const response = await axios.get(`${API_BASE_URL}/stops/`);
       setStops(response.data.results || response.data);
     } catch (err) {
-      console.error('Error fetching stops:', err);
+      console.error("Error fetching stops:", err);
     }
   };
 
@@ -115,21 +115,25 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     if (isOpen && trip) {
       fetchTripDetails();
       fetchStops();
-      setError('');
-      setNewStop({ stopId: '', time: '' });
+      setError("");
+      setNewStop({ stopId: "", time: "" });
     }
   }, [isOpen, trip]);
 
-  const handleChange = (field: string) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
-  };
+  const handleChange =
+    (field: string) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >
+    ) => {
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const handleSave = async () => {
     if (!trip) return;
     setIsSaving(true);
-    setError('');
+    setError("");
     try {
       await axios.put(`${API_BASE_URL}/trips/${trip.id}/`, {
         ...formData,
@@ -138,8 +142,9 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       onTripUpdated();
       onClose();
     } catch (err) {
-      const errorMessage = (err as { response?: { data?: { error?: string } } }).response?.data?.error ||
-        'Failed to update trip';
+      const errorMessage =
+        (err as { response?: { data?: { error?: string } } }).response?.data
+          ?.error || "Failed to update trip";
       setError(errorMessage);
     } finally {
       setIsSaving(false);
@@ -149,7 +154,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   const handleAddStop = async () => {
     if (!trip || !newStop.stopId || !newStop.time) return;
     setIsAdding(true);
-    setError('');
+    setError("");
     try {
       await axios.post(`${API_BASE_URL}/trip-stops/`, {
         trip: trip.id,
@@ -158,11 +163,10 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
         planned_arrival_time: newStop.time,
       });
       await fetchTripDetails();
-      onTripUpdated();
-      setNewStop({ stopId: '', time: '' });
+      setNewStop({ stopId: "", time: "" });
     } catch (err) {
-      console.error('Error adding stop:', err);
-      setError('Failed to add stop');
+      console.error("Error adding stop:", err);
+      setError("Failed to add stop");
     } finally {
       setIsAdding(false);
     }
@@ -172,19 +176,18 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     try {
       await axios.delete(`${API_BASE_URL}/trip-stops/${id}/`);
       await fetchTripDetails();
-      onTripUpdated();
     } catch (err) {
-      console.error('Error deleting stop:', err);
-      setError('Failed to delete stop');
+      console.error("Error deleting stop:", err);
+      setError("Failed to delete stop");
     }
   };
 
   const availableStops = stops.filter(
-    s => !tripStops.some(ts => ts.stop.id === s.id)
+    (s) => !tripStops.some((ts) => ts.stop.id === s.id)
   );
 
   return (
-    <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="lg">
+    <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xl">
       <DrawerOverlay />
       <DrawerContent>
         <DrawerCloseButton />
@@ -201,17 +204,17 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 
             <FormControl>
               <FormLabel>Trip Name</FormLabel>
-              <Input value={formData.name} onChange={handleChange('name')} />
+              <Input value={formData.name} onChange={handleChange("name")} />
             </FormControl>
 
             <FormControl>
               <FormLabel>Vehicle</FormLabel>
-              <Input value={trip?.vehicle_license_plate || ''} isDisabled />
+              <Input value={trip?.vehicle_license_plate || ""} isDisabled />
             </FormControl>
 
             <FormControl>
               <FormLabel>Status</FormLabel>
-              <Select value={formData.status} onChange={handleChange('status')}>
+              <Select value={formData.status} onChange={handleChange("status")}>
                 <option value="draft">Draft</option>
                 <option value="planned">Planned</option>
                 <option value="in_progress">In Progress</option>
@@ -226,7 +229,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                 <Input
                   type="date"
                   value={formData.planned_start_date}
-                  onChange={handleChange('planned_start_date')}
+                  onChange={handleChange("planned_start_date")}
                 />
               </FormControl>
               <FormControl>
@@ -234,7 +237,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                 <Input
                   type="time"
                   value={formData.planned_start_time}
-                  onChange={handleChange('planned_start_time')}
+                  onChange={handleChange("planned_start_time")}
                 />
               </FormControl>
             </HStack>
@@ -243,13 +246,15 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
               <FormLabel>Notes</FormLabel>
               <Textarea
                 value={formData.notes}
-                onChange={handleChange('notes')}
+                onChange={handleChange("notes")}
                 rows={3}
               />
             </FormControl>
 
             <Box mt={4}>
-              <Heading size="md" mb={2}>Stops</Heading>
+              <Heading size="md" mb={2}>
+                Stops
+              </Heading>
               {tripStops.length === 0 ? (
                 <Box>No stops added.</Box>
               ) : (
@@ -263,7 +268,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {tripStops.map(ts => (
+                    {tripStops.map((ts) => (
                       <Tr key={ts.id}>
                         <Td>{ts.order}</Td>
                         <Td>{ts.stop.name}</Td>
@@ -287,21 +292,28 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                 <Select
                   placeholder="Select stop"
                   value={newStop.stopId}
-                  onChange={e => setNewStop(prev => ({ ...prev, stopId: e.target.value }))}
+                  onChange={(e) =>
+                    setNewStop((prev) => ({ ...prev, stopId: e.target.value }))
+                  }
                 >
-                  {availableStops.map(stop => (
-                    <option key={stop.id} value={stop.id}>{stop.name}</option>
+                  {availableStops.map((stop) => (
+                    <option key={stop.id} value={stop.id}>
+                      {stop.name}
+                    </option>
                   ))}
                 </Select>
                 <Input
                   type="time"
                   value={newStop.time}
-                  onChange={e => setNewStop(prev => ({ ...prev, time: e.target.value }))}
+                  onChange={(e) =>
+                    setNewStop((prev) => ({ ...prev, time: e.target.value }))
+                  }
                 />
                 <Button
                   colorScheme="blue"
                   onClick={handleAddStop}
                   isLoading={isAdding}
+                  width="150px"
                 >
                   Add Stop
                 </Button>
@@ -322,4 +334,3 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     </Drawer>
   );
 };
-

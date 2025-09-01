@@ -29,13 +29,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <Box
-      bgGradient="linear(to-tr, blue.900, purple.700)"
-      w="250px"
-      flexShrink={0}
-      p={6}
-      shadow="lg"
-    >
+    <Box w="250px" flexShrink={0} p={6} shadow="lg" bg="blue.900">
       <Flex direction="column" h="100%">
         <Heading size="lg" color="white" mb={8}>
           Dashmap
