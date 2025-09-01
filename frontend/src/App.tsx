@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner, Center } from '@chakra-ui/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AuthPage } from './components/auth/AuthPage';
@@ -22,16 +23,24 @@ const AppContent: React.FC = () => {
 
   return (
     <Layout>
-      <VehicleManagement />
+      <Routes>
+        <Route path="/" element={<Navigate to="/map" replace />} />
+        <Route path="/map" element={<div>Map Component Coming Soon</div>} />
+        <Route path="/trips" element={<div>Trips Component Coming Soon</div>} />
+        <Route path="/vehicles" element={<VehicleManagement />} />
+        <Route path="/settings" element={<div>Settings Component Coming Soon</div>} />
+      </Routes>
     </Layout>
   );
 };
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

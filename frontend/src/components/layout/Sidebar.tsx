@@ -1,13 +1,23 @@
 import React from "react";
-import { Box, Flex, Heading, Button, Text, Spacer } from "@chakra-ui/react";
+import { Box, Flex, Heading, Button, Text, Spacer, VStack } from "@chakra-ui/react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
   };
+
+  const tabs = [
+    { name: "Map", path: "/map" },
+    { name: "Trips", path: "/trips" },
+    { name: "Vehicles", path: "/vehicles" },
+    { name: "Settings", path: "/settings" },
+  ];
 
   return (
     <Box bg="blue.900" w="250px" flexShrink={0} p={6} shadow="lg">
@@ -16,12 +26,32 @@ export const Sidebar: React.FC = () => {
           Dashmap
         </Heading>
 
+        <VStack spacing={2} align="stretch" mb={8}>
+          {tabs.map((tab) => {
+            const isActive = location.pathname === tab.path;
+            return (
+              <Button
+                key={tab.name}
+                variant={isActive ? "solid" : "ghost"}
+                colorScheme={isActive ? "blue" : undefined}
+                color={isActive ? "white" : "blue.200"}
+                bg={isActive ? "blue.700" : "transparent"}
+                justifyContent="flex-start"
+                onClick={() => navigate(tab.path)}
+                _hover={{
+                  bg: isActive ? "blue.600" : "blue.800",
+                  color: "white",
+                }}
+              >
+                {tab.name}
+              </Button>
+            );
+          })}
+        </VStack>
+
         <Spacer />
 
         <Box>
-          <Text fontSize="sm" color="blue.200" mb={1}>
-            Welcome,
-          </Text>
           <Text fontSize="md" color="white" fontWeight="semibold" mb={1}>
             {user?.first_name} {user?.last_name}
           </Text>
