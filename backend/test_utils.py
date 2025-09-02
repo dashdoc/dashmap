@@ -3,7 +3,7 @@ from accounts.models import AuthToken
 
 class AuthenticatedTestMixin:
     """Mixin to provide authentication helpers for API tests"""
-    
+
     def setUp_auth(self):
         """Call this in your test setUp method"""
         self.auth_user = User.objects.create_user(
@@ -13,7 +13,7 @@ class AuthenticatedTestMixin:
         )
         self.token = AuthToken.objects.create(user=self.auth_user)
         self.auth_headers = {'Authorization': f'Token {self.token.key}'}
-    
+
     def authenticated_request(self, method, url, **kwargs):
         """Make an authenticated request"""
         if 'headers' not in kwargs:

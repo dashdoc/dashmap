@@ -9,11 +9,11 @@ from .models import Vehicle
 class VehicleListCreateView(View):
     def get(self, request):
         vehicles = Vehicle.objects.all()
-        
+
         company_id = request.GET.get('company')
         if company_id:
             vehicles = vehicles.filter(company_id=company_id)
-        
+
         data = []
         for vehicle in vehicles:
             data.append({
@@ -33,7 +33,7 @@ class VehicleListCreateView(View):
                 'updated_at': vehicle.updated_at.isoformat()
             })
         return JsonResponse({'results': data})
-    
+
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -75,12 +75,12 @@ class VehicleDetailView(View):
             return Vehicle.objects.select_related('company').get(pk=pk)
         except Vehicle.DoesNotExist:
             return None
-    
+
     def get(self, request, pk):
         vehicle = self.get_object(pk)
         if not vehicle:
             return JsonResponse({'error': 'Vehicle not found'}, status=404)
-        
+
         return JsonResponse({
             'id': vehicle.id,
             'company': vehicle.company.id,
@@ -97,12 +97,12 @@ class VehicleDetailView(View):
             'created_at': vehicle.created_at.isoformat(),
             'updated_at': vehicle.updated_at.isoformat()
         })
-    
+
     def put(self, request, pk):
         vehicle = self.get_object(pk)
         if not vehicle:
             return JsonResponse({'error': 'Vehicle not found'}, status=404)
-        
+
         try:
             data = json.loads(request.body)
             vehicle.company_id = data.get('company', vehicle.company_id)
@@ -116,7 +116,7 @@ class VehicleDetailView(View):
             vehicle.driver_phone = data.get('driver_phone', vehicle.driver_phone)
             vehicle.is_active = data.get('is_active', vehicle.is_active)
             vehicle.save()
-            
+
             return JsonResponse({
                 'id': vehicle.id,
                 'company': vehicle.company.id,
@@ -135,11 +135,11 @@ class VehicleDetailView(View):
             })
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
+
     def delete(self, request, pk):
         vehicle = self.get_object(pk)
         if not vehicle:
             return JsonResponse({'error': 'Vehicle not found'}, status=404)
-        
+
         vehicle.delete()
         return JsonResponse({}, status=204)

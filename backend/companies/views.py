@@ -23,7 +23,7 @@ class CompanyListCreateView(View):
                 'updated_at': company.updated_at.isoformat()
             })
         return JsonResponse({'results': data})
-    
+
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -52,12 +52,12 @@ class CompanyDetailView(View):
             return Company.objects.get(pk=pk)
         except Company.DoesNotExist:
             return None
-    
+
     def get(self, request, pk):
         company = self.get_object(pk)
         if not company:
             return JsonResponse({'error': 'Company not found'}, status=404)
-        
+
         return JsonResponse({
             'id': company.id,
             'name': company.name,
@@ -67,12 +67,12 @@ class CompanyDetailView(View):
             'created_at': company.created_at.isoformat(),
             'updated_at': company.updated_at.isoformat()
         })
-    
+
     def put(self, request, pk):
         company = self.get_object(pk)
         if not company:
             return JsonResponse({'error': 'Company not found'}, status=404)
-        
+
         try:
             data = json.loads(request.body)
             company.name = data.get('name', company.name)
@@ -80,7 +80,7 @@ class CompanyDetailView(View):
             company.phone = data.get('phone', company.phone)
             company.email = data.get('email', company.email)
             company.save()
-            
+
             return JsonResponse({
                 'id': company.id,
                 'name': company.name,
@@ -92,11 +92,11 @@ class CompanyDetailView(View):
             })
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    
+
     def delete(self, request, pk):
         company = self.get_object(pk)
         if not company:
             return JsonResponse({'error': 'Company not found'}, status=404)
-        
+
         company.delete()
         return JsonResponse({}, status=204)

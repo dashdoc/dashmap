@@ -16,7 +16,7 @@ API uses token-based authentication. All endpoints (except login) require a vali
 Request:
 ```json
 {
-  "username": "your_username", 
+  "username": "your_username",
   "password": "your_password"
 }
 ```
@@ -56,7 +56,7 @@ Request:
 ```json
 {
   "username": "new_username",
-  "email": "new_email@example.com", 
+  "email": "new_email@example.com",
   "first_name": "NewFirst",
   "last_name": "NewLast"
 }
@@ -68,7 +68,7 @@ Response:
   "id": 1,
   "username": "new_username",
   "email": "new_email@example.com",
-  "first_name": "NewFirst", 
+  "first_name": "NewFirst",
   "last_name": "NewLast",
   "company_id": 1,
   "company_name": "ACME Logistics"
@@ -85,7 +85,7 @@ Request:
 {
   "company_name": "New Company Name",
   "company_email": "contact@newcompany.com",
-  "company_phone": "555-9999", 
+  "company_phone": "555-9999",
   "company_address": "456 New Business Ave"
 }
 ```
@@ -94,7 +94,7 @@ Response:
 ```json
 {
   "id": 1,
-  "name": "New Company Name", 
+  "name": "New Company Name",
   "email": "contact@newcompany.com",
   "phone": "555-9999",
   "address": "456 New Business Ave",
@@ -135,7 +135,7 @@ All list endpoints return data in this format:
   "id": 1,
   "name": "ACME Logistics",
   "address": "123 Business St",
-  "phone": "555-0123", 
+  "phone": "555-0123",
   "email": "contact@acme.com",
   "created_at": "2024-01-15T08:00:00Z",
   "updated_at": "2024-01-15T08:00:00Z"
@@ -149,7 +149,7 @@ All list endpoints return data in this format:
 - **GET** `/api/vehicles/?company={id}` - Filter by company
 - **POST** `/api/vehicles/` - Create new vehicle
 
-### Vehicle Details  
+### Vehicle Details
 - **GET** `/api/vehicles/{id}/` - Get vehicle details
 - **PUT** `/api/vehicles/{id}/` - Update vehicle
 - **DELETE** `/api/vehicles/{id}/` - Delete vehicle
@@ -177,7 +177,7 @@ All list endpoints return data in this format:
 ## Stops
 
 ### List/Create Stops
-- **GET** `/api/stops/` - List all stops  
+- **GET** `/api/stops/` - List all stops
 - **POST** `/api/stops/` - Create new stop
 
 ### Stop Details
@@ -191,6 +191,8 @@ All list endpoints return data in this format:
   "id": 1,
   "name": "Loading Dock A",
   "address": "100 Warehouse St",
+  "latitude": "41.878113",
+  "longitude": "-87.629799",
   "stop_type": "loading",
   "contact_name": "Dock Manager",
   "contact_phone": "555-0001",
@@ -201,6 +203,11 @@ All list endpoints return data in this format:
 ```
 
 **Stop Types:** `"loading"` or `"unloading"`
+
+**Coordinates:**
+- `latitude` and `longitude` fields are optional decimal values
+- When creating stops, coordinates can be provided or omitted (will be `null`)
+- The fake stop generator automatically creates realistic coordinates
 
 ### Get Orders (Generate Random Stops)
 - **POST** `/api/stops/get-orders/` - Generate 3-8 random stops with faker data
@@ -214,6 +221,8 @@ All list endpoints return data in this format:
       "id": 10,
       "name": "Warehouse C",
       "address": "789 Industrial Blvd, Springfield, IL 62701",
+      "latitude": "39.781721",
+      "longitude": "-89.650148",
       "stop_type": "loading",
       "contact_name": "Mike Johnson",
       "contact_phone": "555-0123",
@@ -227,7 +236,7 @@ All list endpoints return data in this format:
 
 This endpoint simulates incoming orders by creating random stops with realistic data including:
 - Warehouse/distribution centers for loading stops
-- Customer sites/stores for unloading stops  
+- Customer sites/stores for unloading stops
 - Realistic addresses with city, state, zip
 - Contact names and phone numbers
 - Optional notes
@@ -237,7 +246,7 @@ This endpoint simulates incoming orders by creating random stops with realistic 
 ### List/Create Trips
 - **GET** `/api/trips/` - List all trips
 - **GET** `/api/trips/?vehicle={id}` - Filter by vehicle
-- **GET** `/api/trips/?company={id}` - Filter by company  
+- **GET** `/api/trips/?company={id}` - Filter by company
 - **POST** `/api/trips/` - Create new trip
 
 ### Trip Details
@@ -280,6 +289,8 @@ Includes all above fields plus:
         "id": 1,
         "name": "Loading Dock A",
         "address": "100 Warehouse St",
+        "latitude": "41.878113",
+        "longitude": "-87.629799",
         "stop_type": "loading",
         "contact_name": "Dock Manager",
         "contact_phone": "555-0001",
@@ -312,7 +323,7 @@ Includes all above fields plus:
 
 ### Trip Stop Details
 - **GET** `/api/trip-stops/{id}/` - Get trip stop details
-- **PUT** `/api/trip-stops/{id}/` - Update trip stop  
+- **PUT** `/api/trip-stops/{id}/` - Update trip stop
 - **DELETE** `/api/trip-stops/{id}/` - Delete trip stop
 
 **Trip Stop Object:**
@@ -323,7 +334,9 @@ Includes all above fields plus:
   "stop": {
     "id": 1,
     "name": "Loading Dock A",
-    "address": "100 Warehouse St", 
+    "address": "100 Warehouse St",
+    "latitude": "41.878113",
+    "longitude": "-87.629799",
     "stop_type": "loading"
   },
   "order": 1,
@@ -356,7 +369,7 @@ Includes all above fields plus:
 }
 ```
 
-**404 Not Found:**  
+**404 Not Found:**
 ```json
 {
   "error": "Company not found"
@@ -373,7 +386,7 @@ Includes all above fields plus:
 ## Date/Time Formats
 
 - **Dates:** `"2024-01-20"` (ISO 8601)
-- **Times:** `"08:00:00"` (HH:MM:SS)  
+- **Times:** `"08:00:00"` (HH:MM:SS)
 - **DateTimes:** `"2024-01-15T08:00:00Z"` (ISO 8601 with timezone)
 
 ## Example Workflow
