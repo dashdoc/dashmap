@@ -175,36 +175,56 @@ export const StopManagement: React.FC = () => {
           </Text>
         </Box>
       ) : (
-        <TableContainer>
-          <Table variant="simple">
+        <TableContainer overflowX="auto" maxW="100%">
+          <Table variant="simple" size="sm">
             <Thead>
               <Tr>
-                <Th>Name</Th>
-                <Th>Address</Th>
-                <Th>Type</Th>
-                <Th>Contact</Th>
-                <Th>Phone</Th>
-                <Th>Actions</Th>
+                <Th minW="150px">Name</Th>
+                <Th minW="200px">Address</Th>
+                <Th minW="90px">Type</Th>
+                <Th minW="120px" display={{ base: 'none', md: 'table-cell' }}>
+                  Contact
+                </Th>
+                <Th minW="120px" display={{ base: 'none', lg: 'table-cell' }}>
+                  Phone
+                </Th>
+                <Th minW="100px">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
               {stops.map((stop) => (
                 <Tr key={stop.id}>
-                  <Td fontWeight="bold">{stop.name}</Td>
-                  <Td>{stop.address}</Td>
-                  <Td>
+                  <Td fontWeight="bold" minW="150px">
+                    {stop.name}
+                  </Td>
+                  <Td
+                    minW="200px"
+                    maxW="200px"
+                    overflow="hidden"
+                    textOverflow="ellipsis"
+                    whiteSpace="nowrap"
+                    title={stop.address}
+                  >
+                    {stop.address}
+                  </Td>
+                  <Td minW="90px">
                     <Badge
                       colorScheme={
                         stop.stop_type === 'loading' ? 'blue' : 'green'
                       }
+                      size="sm"
                     >
                       {stop.stop_type === 'loading' ? 'Loading' : 'Unloading'}
                     </Badge>
                   </Td>
-                  <Td>{stop.contact_name}</Td>
-                  <Td>{stop.contact_phone}</Td>
-                  <Td>
-                    <HStack spacing={2}>
+                  <Td minW="120px" display={{ base: 'none', md: 'table-cell' }}>
+                    {stop.contact_name}
+                  </Td>
+                  <Td minW="120px" display={{ base: 'none', lg: 'table-cell' }}>
+                    {stop.contact_phone}
+                  </Td>
+                  <Td minW="100px">
+                    <HStack spacing={1}>
                       <IconButton
                         aria-label="Edit stop"
                         icon={<EditIcon />}
