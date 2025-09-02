@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Modal,
   ModalOverlay,
@@ -16,29 +16,29 @@ import {
   AlertIcon,
   Select,
   Textarea,
-} from '@chakra-ui/react';
-import axios from 'axios';
+} from '@chakra-ui/react'
+import axios from 'axios'
 
 interface Stop {
-  id: number;
-  name: string;
-  address: string;
-  stop_type: 'loading' | 'unloading';
-  contact_name: string;
-  contact_phone: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
+  id: number
+  name: string
+  address: string
+  stop_type: 'loading' | 'unloading'
+  contact_name: string
+  contact_phone: string
+  notes: string
+  created_at: string
+  updated_at: string
 }
 
 interface StopFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  stop?: Stop | null;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
+  stop?: Stop | null
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 export const StopForm: React.FC<StopFormProps> = ({
   isOpen,
@@ -53,9 +53,9 @@ export const StopForm: React.FC<StopFormProps> = ({
     contact_name: '',
     contact_phone: '',
     notes: '',
-  });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  })
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (stop) {
@@ -66,7 +66,7 @@ export const StopForm: React.FC<StopFormProps> = ({
         contact_name: stop.contact_name,
         contact_phone: stop.contact_phone,
         notes: stop.notes,
-      });
+      })
     } else {
       setFormData({
         name: '',
@@ -75,49 +75,55 @@ export const StopForm: React.FC<StopFormProps> = ({
         contact_name: '',
         contact_phone: '',
         notes: '',
-      });
+      })
     }
-    setError('');
-  }, [stop, isOpen]);
+    setError('')
+  }, [stop, isOpen])
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
+  const handleChange =
+    (field: string) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >
+    ) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }))
+    }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
     try {
       if (stop) {
-        await axios.put(`${API_BASE_URL}/stops/${stop.id}/`, formData);
+        await axios.put(`${API_BASE_URL}/stops/${stop.id}/`, formData)
       } else {
-        await axios.post(`${API_BASE_URL}/stops/`, formData);
+        await axios.post(`${API_BASE_URL}/stops/`, formData)
       }
 
-      onSuccess();
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 
-                          (stop ? 'Failed to update stop' : 'Failed to create stop');
-      setError(errorMessage);
+      onSuccess()
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      const errorMessage =
+        error.response?.data?.error ||
+        (stop ? 'Failed to update stop' : 'Failed to create stop')
+      setError(errorMessage)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>
-          {stop ? 'Edit Stop' : 'Add New Stop'}
-        </ModalHeader>
+        <ModalHeader>{stop ? 'Edit Stop' : 'Add New Stop'}</ModalHeader>
         <ModalCloseButton />
-        
+
         <form onSubmit={handleSubmit}>
           <ModalBody>
             <VStack spacing={4}>
@@ -207,5 +213,5 @@ export const StopForm: React.FC<StopFormProps> = ({
         </form>
       </ModalContent>
     </Modal>
-  );
-};
+  )
+}

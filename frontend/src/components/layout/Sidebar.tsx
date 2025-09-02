@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react'
 import {
   Box,
   Flex,
@@ -7,26 +7,26 @@ import {
   Text,
   Spacer,
   VStack,
-} from "@chakra-ui/react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+} from '@chakra-ui/react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
 
 export const Sidebar: React.FC = () => {
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { user, logout } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const handleLogout = async () => {
-    await logout();
-  };
+    await logout()
+  }
 
   const tabs = [
-    { name: "Map", path: "/map" },
-    { name: "Trips", path: "/trips" },
-    { name: "Vehicles", path: "/vehicles" },
-    { name: "Stops", path: "/stops" },
-    { name: "Settings", path: "/settings" },
-  ];
+    { name: 'Map', path: '/map' },
+    { name: 'Trips', path: '/trips' },
+    { name: 'Vehicles', path: '/vehicles' },
+    { name: 'Stops', path: '/stops' },
+    { name: 'Settings', path: '/settings' },
+  ]
 
   return (
     <Box w="250px" flexShrink={0} p={6} shadow="lg" bg="blue.900">
@@ -37,24 +37,24 @@ export const Sidebar: React.FC = () => {
 
         <VStack spacing={2} align="stretch" mb={8}>
           {tabs.map((tab) => {
-            const isActive = location.pathname === tab.path;
+            const isActive = location.pathname === tab.path
             return (
               <Button
                 key={tab.name}
-                variant={isActive ? "solid" : "ghost"}
-                colorScheme={isActive ? "blue" : undefined}
-                color={isActive ? "white" : "blue.200"}
-                bg={isActive ? "blue.700" : "transparent"}
+                variant={isActive ? 'solid' : 'ghost'}
+                colorScheme={isActive ? 'blue' : undefined}
+                color={isActive ? 'white' : 'blue.200'}
+                bg={isActive ? 'blue.700' : 'transparent'}
                 justifyContent="flex-start"
                 onClick={() => navigate(tab.path)}
                 _hover={{
-                  bg: isActive ? "blue.600" : "blue.800",
-                  color: "white",
+                  bg: isActive ? 'blue.600' : 'blue.800',
+                  color: 'white',
                 }}
               >
                 {tab.name}
               </Button>
-            );
+            )
           })}
         </VStack>
 
@@ -75,8 +75,8 @@ export const Sidebar: React.FC = () => {
             color="white"
             borderColor="blue.500"
             _hover={{
-              bg: "blue.800",
-              borderColor: "blue.400",
+              bg: 'blue.800',
+              borderColor: 'blue.400',
             }}
           >
             Logout
@@ -84,5 +84,5 @@ export const Sidebar: React.FC = () => {
         </Box>
       </Flex>
     </Box>
-  );
-};
+  )
+}

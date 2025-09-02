@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   Box,
   Button,
@@ -13,34 +13,35 @@ import {
   Card,
   CardBody,
   Link,
-} from '@chakra-ui/react';
-import { useAuth } from '../../contexts/AuthContext';
+} from '@chakra-ui/react'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface LoginFormProps {
-  onSwitchToSignup: () => void;
+  onSwitchToSignup: () => void
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { login } = useAuth();
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
     try {
-      await login(username, password);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      await login(username, password)
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      setError(error.response?.data?.error || 'Login failed. Please try again.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Box maxW="400px" mx="auto" mt={8}>
@@ -53,7 +54,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
             <Text color="gray.600" textAlign="center">
               Sign in to manage your vehicle routes
             </Text>
-            
+
             <form onSubmit={handleSubmit} style={{ width: '100%' }}>
               <VStack spacing={4}>
                 {error && (
@@ -62,7 +63,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
                     {error}
                   </Alert>
                 )}
-                
+
                 <FormControl isRequired>
                   <FormLabel>Username</FormLabel>
                   <Input
@@ -72,7 +73,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
                     placeholder="Enter your username"
                   />
                 </FormControl>
-                
+
                 <FormControl isRequired>
                   <FormLabel>Password</FormLabel>
                   <Input
@@ -82,7 +83,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
                     placeholder="Enter your password"
                   />
                 </FormControl>
-                
+
                 <Button
                   type="submit"
                   colorScheme="blue"
@@ -94,10 +95,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
                 </Button>
               </VStack>
             </form>
-            
+
             <Text fontSize="sm" textAlign="center">
               Don't have an account?{' '}
-              <Link color="blue.500" onClick={onSwitchToSignup} cursor="pointer">
+              <Link
+                color="blue.500"
+                onClick={onSwitchToSignup}
+                cursor="pointer"
+              >
                 Sign up here
               </Link>
             </Text>
@@ -105,5 +110,5 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToSignup }) => {
         </CardBody>
       </Card>
     </Box>
-  );
-};
+  )
+}

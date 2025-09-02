@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { Box } from "@chakra-ui/react";
-import { LoginForm } from "./LoginForm";
-import { SignupForm } from "./SignupForm";
+import React, { useState } from 'react'
+import { Box } from '@chakra-ui/react'
+import { LoginForm } from './LoginForm'
+import { SignupForm } from './SignupForm'
 
 export const AuthPage: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true)
 
   return (
     <Box
@@ -21,5 +21,5 @@ export const AuthPage: React.FC = () => {
         <SignupForm onSwitchToLogin={() => setIsLogin(true)} />
       )}
     </Box>
-  );
-};
+  )
+}

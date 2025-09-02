@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   Box,
   Button,
@@ -15,11 +15,11 @@ import {
   Link,
   SimpleGrid,
   Divider,
-} from '@chakra-ui/react';
-import { useAuth } from '../../contexts/AuthContext';
+} from '@chakra-ui/react'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface SignupFormProps {
-  onSwitchToLogin: () => void;
+  onSwitchToLogin: () => void
 }
 
 export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
@@ -33,32 +33,36 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     company_address: '',
     company_phone: '',
     company_email: '',
-  });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { signup } = useAuth();
+  })
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
+  const { signup } = useAuth()
+
+  const handleChange =
+    (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }))
+    }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
     try {
-      await signup(formData);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      await signup(formData)
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      setError(
+        error.response?.data?.error || 'Registration failed. Please try again.'
+      )
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Box maxW="600px" mx="auto" mt={8}>
@@ -71,7 +75,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
             <Text color="gray.600" textAlign="center">
               Sign up to start managing your vehicle routes
             </Text>
-            
+
             <form onSubmit={handleSubmit} style={{ width: '100%' }}>
               <VStack spacing={4}>
                 {error && (
@@ -80,9 +84,15 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                     {error}
                   </Alert>
                 )}
-                
-                <Text fontWeight="semibold" alignSelf="start">Personal Information</Text>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} width="100%">
+
+                <Text fontWeight="semibold" alignSelf="start">
+                  Personal Information
+                </Text>
+                <SimpleGrid
+                  columns={{ base: 1, md: 2 }}
+                  spacing={4}
+                  width="100%"
+                >
                   <FormControl isRequired>
                     <FormLabel>Username</FormLabel>
                     <Input
@@ -92,7 +102,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="Choose a username"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>Password</FormLabel>
                     <Input
@@ -102,7 +112,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="Create a password"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>First Name</FormLabel>
                     <Input
@@ -112,7 +122,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="Your first name"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>Last Name</FormLabel>
                     <Input
@@ -122,7 +132,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="Your last name"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>Email</FormLabel>
                     <Input
@@ -133,11 +143,17 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                     />
                   </FormControl>
                 </SimpleGrid>
-                
+
                 <Divider />
-                
-                <Text fontWeight="semibold" alignSelf="start">Company Information</Text>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} width="100%">
+
+                <Text fontWeight="semibold" alignSelf="start">
+                  Company Information
+                </Text>
+                <SimpleGrid
+                  columns={{ base: 1, md: 2 }}
+                  spacing={4}
+                  width="100%"
+                >
                   <FormControl isRequired>
                     <FormLabel>Company Name</FormLabel>
                     <Input
@@ -147,7 +163,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="ACME Logistics"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>Company Email</FormLabel>
                     <Input
@@ -157,7 +173,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="contact@company.com"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>Company Phone</FormLabel>
                     <Input
@@ -167,7 +183,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       placeholder="555-0123"
                     />
                   </FormControl>
-                  
+
                   <FormControl isRequired>
                     <FormLabel>Company Address</FormLabel>
                     <Input
@@ -178,7 +194,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                     />
                   </FormControl>
                 </SimpleGrid>
-                
+
                 <Button
                   type="submit"
                   colorScheme="blue"
@@ -190,7 +206,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                 </Button>
               </VStack>
             </form>
-            
+
             <Text fontSize="sm" textAlign="center">
               Already have an account?{' '}
               <Link color="blue.500" onClick={onSwitchToLogin} cursor="pointer">
@@ -201,5 +217,5 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         </CardBody>
       </Card>
     </Box>
-  );
-};
+  )
+}

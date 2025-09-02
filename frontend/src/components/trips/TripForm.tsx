@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Modal,
   ModalOverlay,
@@ -17,45 +17,45 @@ import {
   Select,
   Textarea,
   SimpleGrid,
-} from '@chakra-ui/react';
-import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext';
+} from '@chakra-ui/react'
+import axios from 'axios'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface Trip {
-  id: number;
-  vehicle: number;
-  vehicle_license_plate: string;
-  dispatcher: number;
-  dispatcher_name: string;
-  name: string;
-  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled';
-  planned_start_date: string;
-  planned_start_time: string;
-  actual_start_datetime?: string | null;
-  actual_end_datetime?: string | null;
-  notes: string;
-  driver_notified: boolean;
-  created_at: string;
-  updated_at: string;
+  id: number
+  vehicle: number
+  vehicle_license_plate: string
+  dispatcher: number
+  dispatcher_name: string
+  name: string
+  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
+  planned_start_date: string
+  planned_start_time: string
+  actual_start_datetime?: string | null
+  actual_end_datetime?: string | null
+  notes: string
+  driver_notified: boolean
+  created_at: string
+  updated_at: string
 }
 
 interface Vehicle {
-  id: number;
-  license_plate: string;
-  make: string;
-  model: string;
-  driver_name: string;
-  is_active: boolean;
+  id: number
+  license_plate: string
+  make: string
+  model: string
+  driver_name: string
+  is_active: boolean
 }
 
 interface TripFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  trip?: Trip | null;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
+  trip?: Trip | null
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 export const TripForm: React.FC<TripFormProps> = ({
   isOpen,
@@ -70,36 +70,36 @@ export const TripForm: React.FC<TripFormProps> = ({
     planned_start_date: '',
     planned_start_time: '',
     notes: '',
-  });
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingVehicles, setLoadingVehicles] = useState(false);
-  
-  const { user } = useAuth();
+  })
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadingVehicles, setLoadingVehicles] = useState(false)
+
+  const { user } = useAuth()
 
   const fetchVehicles = async () => {
     try {
-      setLoadingVehicles(true);
+      setLoadingVehicles(true)
       const response = await axios.get(`${API_BASE_URL}/vehicles/`, {
-        params: { company: user?.company_id }
-      });
+        params: { company: user?.company_id },
+      })
       const activeVehicles = (response.data.results || response.data).filter(
         (vehicle: Vehicle) => vehicle.is_active
-      );
-      setVehicles(activeVehicles);
+      )
+      setVehicles(activeVehicles)
     } catch (err) {
-      console.error('Error fetching vehicles:', err);
+      console.error('Error fetching vehicles:', err)
     } finally {
-      setLoadingVehicles(false);
+      setLoadingVehicles(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (isOpen) {
-      fetchVehicles();
+      fetchVehicles()
     }
-  }, [isOpen, user?.company_id]);
+  }, [isOpen, user?.company_id])
 
   useEffect(() => {
     if (trip) {
@@ -110,7 +110,7 @@ export const TripForm: React.FC<TripFormProps> = ({
         planned_start_date: trip.planned_start_date,
         planned_start_time: trip.planned_start_time,
         notes: trip.notes,
-      });
+      })
     } else {
       setFormData({
         name: '',
@@ -119,55 +119,61 @@ export const TripForm: React.FC<TripFormProps> = ({
         planned_start_date: '',
         planned_start_time: '',
         notes: '',
-      });
+      })
     }
-    setError('');
-  }, [trip, isOpen]);
+    setError('')
+  }, [trip, isOpen])
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
+  const handleChange =
+    (field: string) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >
+    ) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }))
+    }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
     try {
       const tripData = {
         ...formData,
         vehicle: parseInt(formData.vehicle),
         dispatcher: user?.id,
-      };
-
-      if (trip) {
-        await axios.put(`${API_BASE_URL}/trips/${trip.id}/`, tripData);
-      } else {
-        await axios.post(`${API_BASE_URL}/trips/`, tripData);
       }
 
-      onSuccess();
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 
-                          (trip ? 'Failed to update trip' : 'Failed to create trip');
-      setError(errorMessage);
+      if (trip) {
+        await axios.put(`${API_BASE_URL}/trips/${trip.id}/`, tripData)
+      } else {
+        await axios.post(`${API_BASE_URL}/trips/`, tripData)
+      }
+
+      onSuccess()
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      const errorMessage =
+        error.response?.data?.error ||
+        (trip ? 'Failed to update trip' : 'Failed to create trip')
+      setError(errorMessage)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>
-          {trip ? 'Edit Trip' : 'Add New Trip'}
-        </ModalHeader>
+        <ModalHeader>{trip ? 'Edit Trip' : 'Add New Trip'}</ModalHeader>
         <ModalCloseButton />
-        
+
         <form onSubmit={handleSubmit}>
           <ModalBody>
             <VStack spacing={4}>
@@ -199,7 +205,8 @@ export const TripForm: React.FC<TripFormProps> = ({
                   >
                     {vehicles.map((vehicle) => (
                       <option key={vehicle.id} value={vehicle.id}>
-                        {vehicle.license_plate} - {vehicle.make} {vehicle.model} ({vehicle.driver_name})
+                        {vehicle.license_plate} - {vehicle.make} {vehicle.model}{' '}
+                        ({vehicle.driver_name})
                       </option>
                     ))}
                   </Select>
@@ -266,5 +273,5 @@ export const TripForm: React.FC<TripFormProps> = ({
         </form>
       </ModalContent>
     </Modal>
-  );
-};
+  )
+}

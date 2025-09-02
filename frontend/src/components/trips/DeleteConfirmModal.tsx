@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'
 import {
   Modal,
   ModalOverlay,
@@ -11,13 +11,13 @@ import {
   Text,
   Alert,
   AlertIcon,
-} from '@chakra-ui/react';
+} from '@chakra-ui/react'
 
 interface DeleteConfirmModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  tripName: string;
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  tripName: string
 }
 
 export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
@@ -32,13 +32,13 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       <ModalContent>
         <ModalHeader>Delete Trip</ModalHeader>
         <ModalCloseButton />
-        
+
         <ModalBody>
           <Alert status="warning" mb={4}>
             <AlertIcon />
             This action cannot be undone.
           </Alert>
-          
+
           <Text>
             Are you sure you want to delete the trip{' '}
             <Text as="span" fontWeight="bold">
@@ -58,5 +58,5 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
         </ModalFooter>
       </ModalContent>
     </Modal>
-  );
-};
+  )
+}

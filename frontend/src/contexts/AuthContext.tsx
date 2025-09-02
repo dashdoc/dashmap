@@ -1,98 +1,122 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react'
+import axios from 'axios'
 
 interface User {
-  id: number;
-  username: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  company_id: number;
-  company_name: string;
+  id: number
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  company_id: number
+  company_name: string
 }
 
 interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  signup: (userData: SignupData) => Promise<void>;
-  updateUser: (userData: User) => void;
-  loading: boolean;
+  user: User | null
+  token: string | null
+  login: (username: string, password: string) => Promise<void>
+  logout: () => Promise<void>
+  signup: (userData: SignupData) => Promise<void>
+  updateUser: (userData: User) => void
+  loading: boolean
 }
 
 interface SignupData {
-  username: string;
-  password: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  company_name: string;
-  company_address: string;
-  company_phone: string;
-  company_email: string;
+  username: string
+  password: string
+  email: string
+  first_name: string
+  last_name: string
+  company_name: string
+  company_address: string
+  company_phone: string
+  company_email: string
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<User | null>(null)
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem('token')
+  )
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      
+      const storedToken = localStorage.getItem('token')
+      const storedUser = localStorage.getItem('user')
+
       if (storedToken) {
-        setToken(storedToken);
-        axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`;
-        
+        setToken(storedToken)
+        axios.defaults.headers.common['Authorization'] = `Token ${storedToken}`
+
         // First set the user from localStorage as fallback
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          setUser(JSON.parse(storedUser))
         }
-        
+
         // Then try to refresh user data from server
         try {
-          const response = await axios.get(`${API_BASE_URL}/auth/profile/`);
-          const userData: User = response.data;
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-        } catch (error: any) {
-          console.error('Failed to fetch user profile:', error);
-          
+          const response = await axios.get(`${API_BASE_URL}/auth/profile/`)
+          const userData: User = response.data
+          setUser(userData)
+          localStorage.setItem('user', JSON.stringify(userData))
+        } catch (error) {
+          const err = error as { response?: { status?: number } }
+          console.error('Failed to fetch user profile:', error)
+
           // Only clear auth if the token is invalid (401/403)
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            delete axios.defaults.headers.common['Authorization'];
-            setToken(null);
-            setUser(null);
+          if (err.response?.status === 401 || err.response?.status === 403) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            delete axios.defaults.headers.common['Authorization']
+            setToken(null)
+            setUser(null)
           }
           // For other errors (network issues, server down, etc.), keep the user logged in with cached data
         }
       }
-      setLoading(false);
-    };
-    
-    initializeAuth();
-  }, []);
+      setLoading(false)
+    }
+
+    initializeAuth()
+  }, [])
 
   const login = async (username: string, password: string) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login/`, {
-        username,
-        password
-      }, {
-        headers: {}
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/login/`,
+        {
+          username,
+          password,
+        },
+        {
+          headers: {},
+        }
+      )
 
-      const { token: newToken, user_id, username: resUsername, email, first_name, last_name, company_id, company_name } = response.data;
-      
+      const {
+        token: newToken,
+        user_id,
+        username: resUsername,
+        email,
+        first_name,
+        last_name,
+        company_id,
+        company_name,
+      } = response.data
+
       const userData: User = {
         id: user_id,
         username: resUsername,
@@ -100,67 +124,75 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         first_name,
         last_name,
         company_id,
-        company_name
-      };
+        company_name,
+      }
 
-      setToken(newToken);
-      setUser(userData);
-      
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      axios.defaults.headers.common['Authorization'] = `Token ${newToken}`;
+      setToken(newToken)
+      setUser(userData)
+
+      localStorage.setItem('token', newToken)
+      localStorage.setItem('user', JSON.stringify(userData))
+
+      axios.defaults.headers.common['Authorization'] = `Token ${newToken}`
     } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+      console.error('Login failed:', error)
+      throw error
     }
-  };
+  }
 
   const logout = async () => {
     try {
       if (token) {
-        await axios.post(`${API_BASE_URL}/auth/logout/`, {}, {
-          headers: { Authorization: `Token ${token}` }
-        });
+        await axios.post(
+          `${API_BASE_URL}/auth/logout/`,
+          {},
+          {
+            headers: { Authorization: `Token ${token}` },
+          }
+        )
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error:', error)
     } finally {
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      delete axios.defaults.headers.common['Authorization'];
+      setToken(null)
+      setUser(null)
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      delete axios.defaults.headers.common['Authorization']
     }
-  };
+  }
 
   const signup = async (userData: SignupData) => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/register/`, {
-        username: userData.username,
-        password: userData.password,
-        email: userData.email,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        company_name: userData.company_name,
-        company_address: userData.company_address,
-        company_phone: userData.company_phone,
-        company_email: userData.company_email
-      }, {
-        headers: {}
-      });
+      await axios.post(
+        `${API_BASE_URL}/auth/register/`,
+        {
+          username: userData.username,
+          password: userData.password,
+          email: userData.email,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          company_name: userData.company_name,
+          company_address: userData.company_address,
+          company_phone: userData.company_phone,
+          company_email: userData.company_email,
+        },
+        {
+          headers: {},
+        }
+      )
 
-      await login(userData.username, userData.password);
+      await login(userData.username, userData.password)
     } catch (error) {
-      console.error('Signup failed:', error);
-      throw error;
+      console.error('Signup failed:', error)
+      throw error
     }
-  };
+  }
 
   const updateUser = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
+    setUser(userData)
+    localStorage.setItem('user', JSON.stringify(userData))
+  }
 
   const value: AuthContextType = {
     user,
@@ -169,20 +201,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     signup,
     updateUser,
-    loading
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    loading,
   }
-  return context;
-};
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}

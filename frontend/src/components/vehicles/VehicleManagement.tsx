@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -18,106 +18,114 @@ import {
   Badge,
   IconButton,
   Text,
-} from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import { VehicleForm } from './VehicleForm';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
-import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext';
+} from '@chakra-ui/react'
+import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons'
+import { VehicleForm } from './VehicleForm'
+import { DeleteConfirmModal } from './DeleteConfirmModal'
+import axios from 'axios'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface Vehicle {
-  id: number;
-  company: number;
-  company_name: string;
-  license_plate: string;
-  make: string;
-  model: string;
-  year: number;
-  capacity: string;
-  driver_name: string;
-  driver_email: string;
-  driver_phone: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  id: number
+  company: number
+  company_name: string
+  license_plate: string
+  make: string
+  model: string
+  year: number
+  capacity: string
+  driver_name: string
+  driver_email: string
+  driver_phone: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 export const VehicleManagement: React.FC = () => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
-  
-  const { isOpen: isFormOpen, onOpen: onFormOpen, onClose: onFormClose } = useDisclosure();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
-  
-  const { user } = useAuth();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null)
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null)
+
+  const {
+    isOpen: isFormOpen,
+    onOpen: onFormOpen,
+    onClose: onFormClose,
+  } = useDisclosure()
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onClose: onDeleteClose,
+  } = useDisclosure()
+
+  const { user } = useAuth()
 
   const fetchVehicles = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
       const response = await axios.get(`${API_BASE_URL}/vehicles/`, {
-        params: { company: user?.company_id }
-      });
-      setVehicles(response.data.results || response.data);
-      setError('');
-    } catch (err: any) {
-      setError('Failed to fetch vehicles. Please try again.');
-      console.error('Error fetching vehicles:', err);
+        params: { company: user?.company_id },
+      })
+      setVehicles(response.data.results || response.data)
+      setError('')
+    } catch (err) {
+      setError('Failed to fetch vehicles. Please try again.')
+      console.error('Error fetching vehicles:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (user?.company_id) {
-      fetchVehicles();
+      fetchVehicles()
     }
-  }, [user]);
+  }, [user])
 
   const handleCreateVehicle = () => {
-    setSelectedVehicle(null);
-    onFormOpen();
-  };
+    setSelectedVehicle(null)
+    onFormOpen()
+  }
 
   const handleEditVehicle = (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    onFormOpen();
-  };
+    setSelectedVehicle(vehicle)
+    onFormOpen()
+  }
 
   const handleDeleteClick = (vehicle: Vehicle) => {
-    setVehicleToDelete(vehicle);
-    onDeleteOpen();
-  };
+    setVehicleToDelete(vehicle)
+    onDeleteOpen()
+  }
 
   const handleDeleteConfirm = async () => {
-    if (!vehicleToDelete) return;
+    if (!vehicleToDelete) return
 
     try {
-      await axios.delete(`${API_BASE_URL}/vehicles/${vehicleToDelete.id}/`);
-      await fetchVehicles();
-      onDeleteClose();
-      setVehicleToDelete(null);
+      await axios.delete(`${API_BASE_URL}/vehicles/${vehicleToDelete.id}/`)
+      await fetchVehicles()
+      onDeleteClose()
+      setVehicleToDelete(null)
     } catch (err) {
-      console.error('Error deleting vehicle:', err);
-      setError('Failed to delete vehicle. Please try again.');
+      console.error('Error deleting vehicle:', err)
+      setError('Failed to delete vehicle. Please try again.')
     }
-  };
+  }
 
   const handleFormSuccess = async () => {
-    onFormClose();
-    await fetchVehicles();
-  };
+    onFormClose()
+    await fetchVehicles()
+  }
 
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
         <Spinner size="xl" />
       </Box>
-    );
+    )
   }
 
   return (
@@ -176,9 +184,7 @@ export const VehicleManagement: React.FC = () => {
                   </Td>
                   <Td>{vehicle.capacity} tons</Td>
                   <Td>
-                    <Badge
-                      colorScheme={vehicle.is_active ? 'green' : 'red'}
-                    >
+                    <Badge colorScheme={vehicle.is_active ? 'green' : 'red'}>
                       {vehicle.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </Td>
@@ -218,8 +224,12 @@ export const VehicleManagement: React.FC = () => {
         isOpen={isDeleteOpen}
         onClose={onDeleteClose}
         onConfirm={handleDeleteConfirm}
-        vehicleName={vehicleToDelete ? `${vehicleToDelete.license_plate} - ${vehicleToDelete.make} ${vehicleToDelete.model}` : ''}
+        vehicleName={
+          vehicleToDelete
+            ? `${vehicleToDelete.license_plate} - ${vehicleToDelete.make} ${vehicleToDelete.model}`
+            : ''
+        }
       />
     </Box>
-  );
-};
+  )
+}

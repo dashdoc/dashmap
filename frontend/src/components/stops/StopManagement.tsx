@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -18,116 +18,123 @@ import {
   Badge,
   IconButton,
   Text,
-} from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import { StopForm } from './StopForm';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
-import axios from 'axios';
+} from '@chakra-ui/react'
+import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons'
+import { StopForm } from './StopForm'
+import { DeleteConfirmModal } from './DeleteConfirmModal'
+import axios from 'axios'
 
 interface Stop {
-  id: number;
-  name: string;
-  address: string;
-  stop_type: 'loading' | 'unloading';
-  contact_name: string;
-  contact_phone: string;
-  notes: string;
-  created_at: string;
-  updated_at: string;
+  id: number
+  name: string
+  address: string
+  stop_type: 'loading' | 'unloading'
+  contact_name: string
+  contact_phone: string
+  notes: string
+  created_at: string
+  updated_at: string
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 export const StopManagement: React.FC = () => {
-  const [stops, setStops] = useState<Stop[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
-  const [stopToDelete, setStopToDelete] = useState<Stop | null>(null);
-  const [isGettingOrders, setIsGettingOrders] = useState(false);
-  
-  const { isOpen: isFormOpen, onOpen: onFormOpen, onClose: onFormClose } = useDisclosure();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
-  
+  const [stops, setStops] = useState<Stop[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+  const [selectedStop, setSelectedStop] = useState<Stop | null>(null)
+  const [stopToDelete, setStopToDelete] = useState<Stop | null>(null)
+  const [isGettingOrders, setIsGettingOrders] = useState(false)
+
+  const {
+    isOpen: isFormOpen,
+    onOpen: onFormOpen,
+    onClose: onFormClose,
+  } = useDisclosure()
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onClose: onDeleteClose,
+  } = useDisclosure()
 
   const fetchStops = async () => {
     try {
-      setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/stops/`);
-      setStops(response.data.results || response.data);
-      setError('');
+      setLoading(true)
+      const response = await axios.get(`${API_BASE_URL}/stops/`)
+      setStops(response.data.results || response.data)
+      setError('')
     } catch (err) {
-      setError('Failed to fetch stops. Please try again.');
-      console.error('Error fetching stops:', err);
+      setError('Failed to fetch stops. Please try again.')
+      console.error('Error fetching stops:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchStops();
-  }, []);
+    fetchStops()
+  }, [])
 
   const handleCreateStop = () => {
-    setSelectedStop(null);
-    onFormOpen();
-  };
+    setSelectedStop(null)
+    onFormOpen()
+  }
 
   const handleEditStop = (stop: Stop) => {
-    setSelectedStop(stop);
-    onFormOpen();
-  };
+    setSelectedStop(stop)
+    onFormOpen()
+  }
 
   const handleDeleteClick = (stop: Stop) => {
-    setStopToDelete(stop);
-    onDeleteOpen();
-  };
+    setStopToDelete(stop)
+    onDeleteOpen()
+  }
 
   const handleDeleteConfirm = async () => {
-    if (!stopToDelete) return;
+    if (!stopToDelete) return
 
     try {
-      await axios.delete(`${API_BASE_URL}/stops/${stopToDelete.id}/`);
-      await fetchStops();
-      onDeleteClose();
-      setStopToDelete(null);
+      await axios.delete(`${API_BASE_URL}/stops/${stopToDelete.id}/`)
+      await fetchStops()
+      onDeleteClose()
+      setStopToDelete(null)
     } catch (err) {
-      console.error('Error deleting stop:', err);
-      setError('Failed to delete stop. Please try again.');
+      console.error('Error deleting stop:', err)
+      setError('Failed to delete stop. Please try again.')
     }
-  };
+  }
 
   const handleFormSuccess = async () => {
-    onFormClose();
-    await fetchStops();
-  };
+    onFormClose()
+    await fetchStops()
+  }
 
   const handleGetOrders = async () => {
     try {
-      setIsGettingOrders(true);
-      setError('');
-      
-      const response = await axios.post(`${API_BASE_URL}/stops/get-orders/`);
-      
+      setIsGettingOrders(true)
+      setError('')
+
+      const response = await axios.post(`${API_BASE_URL}/stops/get-orders/`)
+
       if (response.status === 201) {
-        setError('');
+        setError('')
         // Refresh the stops list to show new orders
-        await fetchStops();
+        await fetchStops()
       }
     } catch (err) {
-      console.error('Error getting orders:', err);
-      setError('Failed to get orders. Please try again.');
+      console.error('Error getting orders:', err)
+      setError('Failed to get orders. Please try again.')
     } finally {
-      setIsGettingOrders(false);
+      setIsGettingOrders(false)
     }
-  };
+  }
 
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
         <Spinner size="xl" />
       </Box>
-    );
+    )
   }
 
   return (
@@ -187,7 +194,9 @@ export const StopManagement: React.FC = () => {
                   <Td>{stop.address}</Td>
                   <Td>
                     <Badge
-                      colorScheme={stop.stop_type === 'loading' ? 'blue' : 'green'}
+                      colorScheme={
+                        stop.stop_type === 'loading' ? 'blue' : 'green'
+                      }
                     >
                       {stop.stop_type === 'loading' ? 'Loading' : 'Unloading'}
                     </Badge>
@@ -233,5 +242,5 @@ export const StopManagement: React.FC = () => {
         stopName={stopToDelete ? stopToDelete.name : ''}
       />
     </Box>
-  );
-};
+  )
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   Box,
   Button,
@@ -13,125 +13,138 @@ import {
   Card,
   CardBody,
   SimpleGrid,
-  Divider,
-} from '@chakra-ui/react';
-import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+} from '@chakra-ui/react'
+import { useAuth } from '../../contexts/AuthContext'
+import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 export const Settings: React.FC = () => {
-  const { user, updateUser } = useAuth();
-  
+  const { user, updateUser } = useAuth()
+
   const [userSettings, setUserSettings] = useState({
     username: user?.username || '',
     email: user?.email || '',
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
-  });
+  })
 
   const [companySettings, setCompanySettings] = useState({
     company_name: user?.company_name || '',
     company_email: '',
     company_phone: '',
     company_address: '',
-  });
+  })
 
-  const [userError, setUserError] = useState('');
-  const [companyError, setCompanyError] = useState('');
-  const [userSuccess, setUserSuccess] = useState('');
-  const [companySuccess, setCompanySuccess] = useState('');
-  const [isUserLoading, setIsUserLoading] = useState(false);
-  const [isCompanyLoading, setIsCompanyLoading] = useState(false);
+  const [userError, setUserError] = useState('')
+  const [companyError, setCompanyError] = useState('')
+  const [userSuccess, setUserSuccess] = useState('')
+  const [companySuccess, setCompanySuccess] = useState('')
+  const [isUserLoading, setIsUserLoading] = useState(false)
+  const [isCompanyLoading, setIsCompanyLoading] = useState(false)
 
-  const handleUserChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUserSettings(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
+  const handleUserChange =
+    (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUserSettings((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }))
+    }
 
-  const handleCompanyChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCompanySettings(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
+  const handleCompanyChange =
+    (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setCompanySettings((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }))
+    }
 
   const handleUserSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUserLoading(true);
-    setUserError('');
-    setUserSuccess('');
+    e.preventDefault()
+    setIsUserLoading(true)
+    setUserError('')
+    setUserSuccess('')
 
     try {
-      const response = await axios.put(`${API_BASE_URL}/auth/profile/`, userSettings, {
-        headers: {
-          'Authorization': `Token ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      const response = await axios.put(
+        `${API_BASE_URL}/auth/profile/`,
+        userSettings,
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
-      
+      )
+
       // Update user context with new user data
-      updateUser(response.data);
-      
-      setUserSuccess('User settings updated successfully!');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to update user settings. Please try again.';
-      setUserError(errorMessage);
+      updateUser(response.data)
+
+      setUserSuccess('User settings updated successfully!')
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      const errorMessage =
+        error.response?.data?.error ||
+        'Failed to update user settings. Please try again.'
+      setUserError(errorMessage)
     } finally {
-      setIsUserLoading(false);
+      setIsUserLoading(false)
     }
-  };
+  }
 
   const handleCompanySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsCompanyLoading(true);
-    setCompanyError('');
-    setCompanySuccess('');
+    e.preventDefault()
+    setIsCompanyLoading(true)
+    setCompanyError('')
+    setCompanySuccess('')
 
     try {
-      const response = await axios.put(`${API_BASE_URL}/auth/company/`, companySettings, {
-        headers: {
-          'Authorization': `Token ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
+      const response = await axios.put(
+        `${API_BASE_URL}/auth/company/`,
+        companySettings,
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
-      
+      )
+
       // Update user context with new company name
       if (user) {
         const updatedUser = {
           ...user,
-          company_name: response.data.name
-        };
-        updateUser(updatedUser);
+          company_name: response.data.name,
+        }
+        updateUser(updatedUser)
       }
-      
-      setCompanySuccess('Company settings updated successfully!');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to update company settings. Please try again.';
-      setCompanyError(errorMessage);
+
+      setCompanySuccess('Company settings updated successfully!')
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      const errorMessage =
+        error.response?.data?.error ||
+        'Failed to update company settings. Please try again.'
+      setCompanyError(errorMessage)
     } finally {
-      setIsCompanyLoading(false);
+      setIsCompanyLoading(false)
     }
-  };
+  }
 
   return (
     <Box maxW="800px" mx="auto" p={4}>
       <Heading size="lg" mb={6}>
         Settings
       </Heading>
-      
+
       <VStack spacing={8} align="stretch">
         {/* User Settings Section */}
         <Card>
           <CardBody>
             <VStack spacing={4} align="stretch">
               <Heading size="md">Personal Information</Heading>
-              <Text color="gray.600">
-                Update your personal account details
-              </Text>
-              
+              <Text color="gray.600">Update your personal account details</Text>
+
               <form onSubmit={handleUserSubmit}>
                 <VStack spacing={4}>
                   {userError && (
@@ -140,15 +153,19 @@ export const Settings: React.FC = () => {
                       {userError}
                     </Alert>
                   )}
-                  
+
                   {userSuccess && (
                     <Alert status="success">
                       <AlertIcon />
                       {userSuccess}
                     </Alert>
                   )}
-                  
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} width="100%">
+
+                  <SimpleGrid
+                    columns={{ base: 1, md: 2 }}
+                    spacing={4}
+                    width="100%"
+                  >
                     <FormControl>
                       <FormLabel>Username</FormLabel>
                       <Input
@@ -158,7 +175,7 @@ export const Settings: React.FC = () => {
                         placeholder="Your username"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Email</FormLabel>
                       <Input
@@ -168,7 +185,7 @@ export const Settings: React.FC = () => {
                         placeholder="your.email@example.com"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>First Name</FormLabel>
                       <Input
@@ -178,7 +195,7 @@ export const Settings: React.FC = () => {
                         placeholder="Your first name"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Last Name</FormLabel>
                       <Input
@@ -189,7 +206,7 @@ export const Settings: React.FC = () => {
                       />
                     </FormControl>
                   </SimpleGrid>
-                  
+
                   <Button
                     type="submit"
                     colorScheme="blue"
@@ -210,10 +227,8 @@ export const Settings: React.FC = () => {
           <CardBody>
             <VStack spacing={4} align="stretch">
               <Heading size="md">Company Information</Heading>
-              <Text color="gray.600">
-                Update your company details
-              </Text>
-              
+              <Text color="gray.600">Update your company details</Text>
+
               <form onSubmit={handleCompanySubmit}>
                 <VStack spacing={4}>
                   {companyError && (
@@ -222,15 +237,19 @@ export const Settings: React.FC = () => {
                       {companyError}
                     </Alert>
                   )}
-                  
+
                   {companySuccess && (
                     <Alert status="success">
                       <AlertIcon />
                       {companySuccess}
                     </Alert>
                   )}
-                  
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} width="100%">
+
+                  <SimpleGrid
+                    columns={{ base: 1, md: 2 }}
+                    spacing={4}
+                    width="100%"
+                  >
                     <FormControl>
                       <FormLabel>Company Name</FormLabel>
                       <Input
@@ -240,7 +259,7 @@ export const Settings: React.FC = () => {
                         placeholder="ACME Logistics"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Company Email</FormLabel>
                       <Input
@@ -250,7 +269,7 @@ export const Settings: React.FC = () => {
                         placeholder="contact@company.com"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Company Phone</FormLabel>
                       <Input
@@ -260,7 +279,7 @@ export const Settings: React.FC = () => {
                         placeholder="555-0123"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Company Address</FormLabel>
                       <Input
@@ -271,7 +290,7 @@ export const Settings: React.FC = () => {
                       />
                     </FormControl>
                   </SimpleGrid>
-                  
+
                   <Button
                     type="submit"
                     colorScheme="blue"
@@ -288,5 +307,5 @@ export const Settings: React.FC = () => {
         </Card>
       </VStack>
     </Box>
-  );
-};
+  )
+}

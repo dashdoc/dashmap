@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -18,126 +18,144 @@ import {
   Badge,
   IconButton,
   Text,
-} from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
-import { TripForm } from './TripForm';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
-import { TripDetailsDrawer } from './TripDetailsDrawer';
-import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext';
+} from '@chakra-ui/react'
+import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons'
+import { TripForm } from './TripForm'
+import { DeleteConfirmModal } from './DeleteConfirmModal'
+import { TripDetailsDrawer } from './TripDetailsDrawer'
+import axios from 'axios'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface Trip {
-  id: number;
-  vehicle: number;
-  vehicle_license_plate: string;
-  dispatcher: number;
-  dispatcher_name: string;
-  name: string;
-  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled';
-  planned_start_date: string;
-  planned_start_time: string;
-  actual_start_datetime?: string | null;
-  actual_end_datetime?: string | null;
-  notes: string;
-  driver_notified: boolean;
-  created_at: string;
-  updated_at: string;
+  id: number
+  vehicle: number
+  vehicle_license_plate: string
+  dispatcher: number
+  dispatcher_name: string
+  name: string
+  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
+  planned_start_date: string
+  planned_start_time: string
+  actual_start_datetime?: string | null
+  actual_end_datetime?: string | null
+  notes: string
+  driver_notified: boolean
+  created_at: string
+  updated_at: string
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 const getStatusColor = (status: Trip['status']) => {
   switch (status) {
-    case 'draft': return 'gray';
-    case 'planned': return 'blue';
-    case 'in_progress': return 'yellow';
-    case 'completed': return 'green';
-    case 'cancelled': return 'red';
-    default: return 'gray';
+    case 'draft':
+      return 'gray'
+    case 'planned':
+      return 'blue'
+    case 'in_progress':
+      return 'yellow'
+    case 'completed':
+      return 'green'
+    case 'cancelled':
+      return 'red'
+    default:
+      return 'gray'
   }
-};
+}
 
 export const TripManagement: React.FC = () => {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
-  const [tripToDelete, setTripToDelete] = useState<Trip | null>(null);
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
-  
-  const { isOpen: isFormOpen, onOpen: onFormOpen, onClose: onFormClose } = useDisclosure();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
-  const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
-  
-  const { user } = useAuth();
+  const [trips, setTrips] = useState<Trip[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
+  const [tripToDelete, setTripToDelete] = useState<Trip | null>(null)
+  const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
+
+  const {
+    isOpen: isFormOpen,
+    onOpen: onFormOpen,
+    onClose: onFormClose,
+  } = useDisclosure()
+  const {
+    isOpen: isDeleteOpen,
+    onOpen: onDeleteOpen,
+    onClose: onDeleteClose,
+  } = useDisclosure()
+  const {
+    isOpen: isDetailsOpen,
+    onOpen: onDetailsOpen,
+    onClose: onDetailsClose,
+  } = useDisclosure()
+
+  const { user } = useAuth()
 
   const fetchTrips = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
       const response = await axios.get(`${API_BASE_URL}/trips/`, {
-        params: { company: user?.company_id }
-      });
-      setTrips(response.data.results || response.data);
-      setError('');
+        params: { company: user?.company_id },
+      })
+      setTrips(response.data.results || response.data)
+      setError('')
     } catch (err) {
-      setError('Failed to fetch trips. Please try again.');
-      console.error('Error fetching trips:', err);
+      setError('Failed to fetch trips. Please try again.')
+      console.error('Error fetching trips:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (user?.company_id) {
-      fetchTrips();
+      fetchTrips()
     }
-  }, [user]);
+  }, [user])
 
   const handleCreateTrip = () => {
-    setSelectedTrip(null);
-    onFormOpen();
-  };
+    setSelectedTrip(null)
+    onFormOpen()
+  }
 
   const handleEditTrip = (trip: Trip) => {
-    setSelectedTrip(trip);
-    onFormOpen();
-  };
+    setSelectedTrip(trip)
+    onFormOpen()
+  }
 
   const handleViewDetails = (trip: Trip) => {
-    setActiveTrip(trip);
-    onDetailsOpen();
-  };
+    setActiveTrip(trip)
+    onDetailsOpen()
+  }
 
   const handleDeleteClick = (trip: Trip) => {
-    setTripToDelete(trip);
-    onDeleteOpen();
-  };
+    setTripToDelete(trip)
+    onDeleteOpen()
+  }
 
   const handleDeleteConfirm = async () => {
-    if (!tripToDelete) return;
+    if (!tripToDelete) return
 
     try {
-      await axios.delete(`${API_BASE_URL}/trips/${tripToDelete.id}/`);
-      await fetchTrips();
-      onDeleteClose();
-      setTripToDelete(null);
+      await axios.delete(`${API_BASE_URL}/trips/${tripToDelete.id}/`)
+      await fetchTrips()
+      onDeleteClose()
+      setTripToDelete(null)
     } catch (err) {
-      console.error('Error deleting trip:', err);
-      setError('Failed to delete trip. Please try again.');
+      console.error('Error deleting trip:', err)
+      setError('Failed to delete trip. Please try again.')
     }
-  };
+  }
 
   const handleFormSuccess = async () => {
-    onFormClose();
-    await fetchTrips();
-  };
+    onFormClose()
+    await fetchTrips()
+  }
 
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
         <Spinner size="xl" />
       </Box>
-    );
+    )
   }
 
   return (
@@ -194,11 +212,14 @@ export const TripManagement: React.FC = () => {
                   </Td>
                   <Td>
                     <Badge colorScheme={getStatusColor(trip.status)}>
-                      {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+                      {trip.status.charAt(0).toUpperCase() +
+                        trip.status.slice(1)}
                     </Badge>
                   </Td>
                   <Td>
-                    <Badge colorScheme={trip.driver_notified ? 'green' : 'gray'}>
+                    <Badge
+                      colorScheme={trip.driver_notified ? 'green' : 'gray'}
+                    >
                       {trip.driver_notified ? 'Yes' : 'No'}
                     </Badge>
                   </Td>
@@ -254,5 +275,5 @@ export const TripManagement: React.FC = () => {
         onTripUpdated={fetchTrips}
       />
     </Box>
-  );
-};
+  )
+}

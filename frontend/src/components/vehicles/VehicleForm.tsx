@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Modal,
   ModalOverlay,
@@ -17,35 +17,35 @@ import {
   SimpleGrid,
   Switch,
   FormHelperText,
-} from '@chakra-ui/react';
-import axios from 'axios';
-import { useAuth } from '../../contexts/AuthContext';
+} from '@chakra-ui/react'
+import axios from 'axios'
+import { useAuth } from '../../contexts/AuthContext'
 
 interface Vehicle {
-  id: number;
-  company: number;
-  company_name: string;
-  license_plate: string;
-  make: string;
-  model: string;
-  year: number;
-  capacity: string;
-  driver_name: string;
-  driver_email: string;
-  driver_phone: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  id: number
+  company: number
+  company_name: string
+  license_plate: string
+  make: string
+  model: string
+  year: number
+  capacity: string
+  driver_name: string
+  driver_email: string
+  driver_phone: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 interface VehicleFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  vehicle?: Vehicle | null;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
+  vehicle?: Vehicle | null
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 export const VehicleForm: React.FC<VehicleFormProps> = ({
   isOpen,
@@ -63,11 +63,11 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     driver_email: '',
     driver_phone: '',
     is_active: true,
-  });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { user } = useAuth();
+  })
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const { user } = useAuth()
 
   useEffect(() => {
     if (vehicle) {
@@ -81,7 +81,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
         driver_email: vehicle.driver_email,
         driver_phone: vehicle.driver_phone,
         is_active: vehicle.is_active,
-      });
+      })
     } else {
       setFormData({
         license_plate: '',
@@ -93,46 +93,53 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
         driver_email: '',
         driver_phone: '',
         is_active: true,
-      });
+      })
     }
-    setError('');
-  }, [vehicle, isOpen]);
+    setError('')
+  }, [vehicle, isOpen])
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = field === 'year' ? parseInt(e.target.value) || 0 : 
-                  field === 'is_active' ? e.target.checked : e.target.value;
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const handleChange =
+    (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value =
+        field === 'year'
+          ? parseInt(e.target.value) || 0
+          : field === 'is_active'
+            ? e.target.checked
+            : e.target.value
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }))
+    }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
 
     try {
       const vehicleData = {
         ...formData,
         company: user?.company_id,
-      };
-
-      if (vehicle) {
-        await axios.put(`${API_BASE_URL}/vehicles/${vehicle.id}/`, vehicleData);
-      } else {
-        await axios.post(`${API_BASE_URL}/vehicles/`, vehicleData);
       }
 
-      onSuccess();
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 
-                          (vehicle ? 'Failed to update vehicle' : 'Failed to create vehicle');
-      setError(errorMessage);
+      if (vehicle) {
+        await axios.put(`${API_BASE_URL}/vehicles/${vehicle.id}/`, vehicleData)
+      } else {
+        await axios.post(`${API_BASE_URL}/vehicles/`, vehicleData)
+      }
+
+      onSuccess()
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } }
+      const errorMessage =
+        error.response?.data?.error ||
+        (vehicle ? 'Failed to update vehicle' : 'Failed to create vehicle')
+      setError(errorMessage)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -142,7 +149,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
           {vehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
         </ModalHeader>
         <ModalCloseButton />
-        
+
         <form onSubmit={handleSubmit}>
           <ModalBody>
             <VStack spacing={4}>
@@ -267,5 +274,5 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
         </form>
       </ModalContent>
     </Modal>
-  );
-};
+  )
+}
