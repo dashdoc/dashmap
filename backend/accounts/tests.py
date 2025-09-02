@@ -371,3 +371,51 @@ class RegisterViewTestCase(TestCase):
         user = User.objects.get(username='newuser')
         self.assertNotEqual(user.password, 'newpass123')  # Should be hashed
         self.assertTrue(user.check_password('newpass123'))  # But should validate
+
+class UserProfileViewTestCase(TestCase):
+    def setUp(self):
+        self.company = Company.objects.create(
+            name='Test Company',
+            address='123 Test St',
+            phone='555-1234',
+            email='test@company.com'
+        )
+
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass123',
+            email='test@user.com',
+            first_name='Test',
+            last_name='User'
+        )
+
+        self.profile = UserProfile.objects.create(
+            user=self.user,
+            company=self.company
+        )
+
+        self.token = AuthToken.objects.create(user=self.user)
+
+    def test_get_profile(self):
+        """Test GET /api/auth/profile/ returns user profile data"""
+        response = self.client.get('/api/auth/profile/',
+            headers={'Authorization': f'Token {self.token.key}'}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        self.assertEqual(data['id'], self.user.id)
+        self.assertEqual(data['username'], 'testuser')
+        self.assertEqual(data['email'], 'test@user.com')
+        self.assertEqual(data['first_name'], 'Test')
+        self.assertEqual(data['last_name'], 'User')
+        self.assertEqual(data['company_id'], self.company.id)
+        self.assertEqual(data['company_name'], 'Test Company')
+
+    def test_get_profile_no_auth(self):
+        """Test GET /api/auth/profile/ without authentication returns 401"""
+        response = self.client.get('/api/auth/profile/')
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['error'], 'Authentication required')

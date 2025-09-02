@@ -8,6 +8,7 @@ import { VehicleManagement } from './components/vehicles/VehicleManagement'
 import { StopManagement } from './components/stops/StopManagement'
 import { TripManagement } from './components/trips/TripManagement'
 import { Settings } from './components/settings/Settings'
+import MapView from './components/maps/MapView'
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth()
@@ -25,16 +26,49 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/map" replace />} />
-        <Route path="/map" element={<div>Map Component Coming Soon</div>} />
-        <Route path="/trips" element={<TripManagement />} />
-        <Route path="/vehicles" element={<VehicleManagement />} />
-        <Route path="/stops" element={<StopManagement />} />
-        <Route path="/settings" element={<Settings />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route path="/" element={<Navigate to="/map" replace />} />
+      <Route
+        path="/map"
+        element={
+          <Layout isFullScreen>
+            <MapView />
+          </Layout>
+        }
+      />
+      <Route
+        path="/trips"
+        element={
+          <Layout>
+            <TripManagement />
+          </Layout>
+        }
+      />
+      <Route
+        path="/vehicles"
+        element={
+          <Layout>
+            <VehicleManagement />
+          </Layout>
+        }
+      />
+      <Route
+        path="/stops"
+        element={
+          <Layout>
+            <StopManagement />
+          </Layout>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Layout>
+            <Settings />
+          </Layout>
+        }
+      />
+    </Routes>
   )
 }
 

@@ -47,10 +47,32 @@ Response:
 }
 ```
 
-### Update User Profile
+### User Profile
+**GET** `/api/auth/profile/` - Get current user profile information
+**PUT** `/api/auth/profile/` - Update user profile information
+
+Both endpoints require authentication token.
+
+#### Get User Profile
+**GET** `/api/auth/profile/`
+
+Response:
+```json
+{
+  "id": 1,
+  "username": "current_user",
+  "email": "user@example.com",
+  "first_name": "Current",
+  "last_name": "User",
+  "company_id": 1,
+  "company_name": "ACME Logistics"
+}
+```
+
+#### Update User Profile
 **PUT** `/api/auth/profile/`
 
-Updates the current user's profile information. Requires authentication token.
+Updates the current user's profile information.
 
 Request:
 ```json

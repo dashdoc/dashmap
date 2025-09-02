@@ -144,6 +144,32 @@ def get_user_from_token(request):
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UserProfileUpdateView(View):
+    def get(self, request):
+        user = get_user_from_token(request)
+        if not user:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+
+        # Return current user data
+        response_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
+
+        # Add company info if user has profile
+        try:
+            profile = user.profile
+            response_data.update({
+                'company_id': profile.company.id,
+                'company_name': profile.company.name
+            })
+        except:
+            pass
+
+        return JsonResponse(response_data)
+
     def put(self, request):
         user = get_user_from_token(request)
         if not user:
