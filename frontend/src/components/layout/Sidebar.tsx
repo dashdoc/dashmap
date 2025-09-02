@@ -8,6 +8,7 @@ import {
   Spacer,
   VStack,
 } from '@chakra-ui/react'
+import { Map, Route, Truck, MapPin, Settings } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -21,11 +22,11 @@ export const Sidebar: React.FC = () => {
   }
 
   const tabs = [
-    { name: 'Map', path: '/map' },
-    { name: 'Trips', path: '/trips' },
-    { name: 'Vehicles', path: '/vehicles' },
-    { name: 'Stops', path: '/stops' },
-    { name: 'Settings', path: '/settings' },
+    { name: 'Map', path: '/map', icon: Map },
+    { name: 'Trips', path: '/trips', icon: Route },
+    { name: 'Vehicles', path: '/vehicles', icon: Truck },
+    { name: 'Stops', path: '/stops', icon: MapPin },
+    { name: 'Settings', path: '/settings', icon: Settings },
   ]
 
   return (
@@ -38,6 +39,7 @@ export const Sidebar: React.FC = () => {
         <VStack spacing={2} align="stretch" mb={8}>
           {tabs.map((tab) => {
             const isActive = location.pathname === tab.path
+            const IconComponent = tab.icon
             return (
               <Button
                 key={tab.name}
@@ -46,6 +48,7 @@ export const Sidebar: React.FC = () => {
                 color={isActive ? 'white' : 'blue.200'}
                 bg={isActive ? 'blue.700' : 'transparent'}
                 justifyContent="flex-start"
+                leftIcon={<IconComponent size={18} />}
                 onClick={() => navigate(tab.path)}
                 _hover={{
                   bg: isActive ? 'blue.600' : 'blue.800',
