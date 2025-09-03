@@ -114,7 +114,7 @@ export const StopManagement: React.FC = () => {
       setIsGettingOrders(true)
       setError('')
 
-      const response = await axios.post(`${API_BASE_URL}/stops/get-orders/`)
+      const response = await axios.post(`${API_BASE_URL}/stops/generate-fake/`)
 
       if (response.status === 201) {
         setError('')
@@ -149,7 +149,7 @@ export const StopManagement: React.FC = () => {
             isLoading={isGettingOrders}
             loadingText="Getting Orders..."
           >
-            Get Orders
+            Generate Fake Orders
           </Button>
           <Button
             colorScheme="blue"
