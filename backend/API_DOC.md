@@ -431,6 +431,9 @@ Vehicle position tracking for telematics integration.
 - **GET** `/api/positions/` - List all positions (supports `?vehicle={id}` filter)
 - **POST** `/api/positions/` - Create new position record
 
+### Latest Vehicle Positions
+- **GET** `/api/positions/latest/` - Get the latest position for each vehicle
+
 ### Generate Fake Positions
 - **POST** `/api/positions/generate-fake/` - Generate fake telematics data for testing
 
@@ -440,6 +443,7 @@ Vehicle position tracking for telematics integration.
   "id": 1,
   "vehicle_id": 1,
   "vehicle_license_plate": "ABC-123",
+  "vehicle_make_model": "Ford Transit",
   "latitude": "40.7589123",
   "longitude": "-73.9851456",
   "speed": "65.50",
@@ -450,6 +454,30 @@ Vehicle position tracking for telematics integration.
   "fuel_level": "75.30",
   "engine_status": "on",
   "created_at": "2024-01-15T14:30:05Z"
+}
+```
+
+**Latest Positions Response:**
+```json
+{
+  "results": [
+    {
+      "id": 1,
+      "vehicle_id": 1,
+      "vehicle_license_plate": "ABC-123",
+      "vehicle_make_model": "Ford Transit",
+      "latitude": "40.7589123",
+      "longitude": "-73.9851456",
+      "speed": "65.50",
+      "heading": "180.00",
+      "altitude": "150.25",
+      "timestamp": "2024-01-15T14:30:00Z",
+      "odometer": "25847.50",
+      "fuel_level": "75.30",
+      "engine_status": "on",
+      "created_at": "2024-01-15T14:30:05Z"
+    }
+  ]
 }
 ```
 

@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.utils import timezone
+from django.db.models import OuterRef, Subquery
 import json
 import random
 from datetime import datetime, timedelta
@@ -138,3 +139,38 @@ class GenerateFakeView(View):
 
         except (KeyError, json.JSONDecodeError, ValueError) as e:
             return JsonResponse({'error': f'Invalid data: {str(e)}'}, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class LatestPositionsView(View):
+    def get(self, request):
+        """Get the latest position for each vehicle"""
+        # Get latest position for each vehicle using subquery
+        latest_positions_subquery = Position.objects.filter(
+            vehicle=OuterRef('vehicle')
+        ).order_by('-timestamp').values('id')[:1]
+
+        latest_positions = Position.objects.filter(
+            id__in=Subquery(latest_positions_subquery)
+        ).select_related('vehicle', 'vehicle__company')
+
+        data = []
+        for position in latest_positions:
+            data.append({
+                'id': position.id,
+                'vehicle_id': position.vehicle.id,
+                'vehicle_license_plate': position.vehicle.license_plate,
+                'vehicle_make_model': f"{position.vehicle.make} {position.vehicle.model}",
+                'latitude': f"{position.latitude:.7f}",
+                'longitude': f"{position.longitude:.7f}",
+                'speed': f"{position.speed:.2f}",
+                'heading': f"{position.heading:.2f}",
+                'altitude': f"{position.altitude:.2f}" if position.altitude else None,
+                'timestamp': position.timestamp.isoformat(),
+                'odometer': f"{position.odometer:.2f}" if position.odometer else None,
+                'fuel_level': f"{position.fuel_level:.2f}" if position.fuel_level else None,
+                'engine_status': position.engine_status,
+                'created_at': position.created_at.isoformat()
+            })
+
+        return JsonResponse({'results': data})
