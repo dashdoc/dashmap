@@ -40,6 +40,23 @@ export interface Trip {
   trip_stops?: TripStop[]
 }
 
+export interface VehiclePosition {
+  id: number
+  vehicle_id: number
+  vehicle_license_plate: string
+  vehicle_make_model: string
+  latitude: string
+  longitude: string
+  speed: string
+  heading: string
+  altitude: string | null
+  timestamp: string
+  odometer: string | null
+  fuel_level: string | null
+  engine_status: 'on' | 'off' | 'idle'
+  created_at: string
+}
+
 export interface MapControls {
   showStops: boolean
   showVehicles: boolean

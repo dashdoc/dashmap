@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Stop, Trip } from '../types/map'
+import { Stop, Trip, VehiclePosition } from '../types/map'
 import { useAuth } from '../contexts/AuthContext'
 
 export const useMapData = () => {
   const [stops, setStops] = useState<Stop[]>([])
   const [trips, setTrips] = useState<Trip[]>([])
+  const [vehiclePositions, setVehiclePositions] = useState<VehiclePosition[]>(
+    []
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -79,19 +82,42 @@ export const useMapData = () => {
     }
   }, [apiBaseUrl, token])
 
+  const fetchVehiclePositions = useCallback(async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/positions/latest/`, {
+        headers: {
+          Authorization: `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setVehiclePositions(data.results)
+    } catch (error) {
+      console.error('Error fetching vehicle positions:', error)
+    }
+  }, [apiBaseUrl, token])
+
   useEffect(() => {
     if (token) {
       fetchStops()
       fetchTrips()
+      fetchVehiclePositions()
     }
-  }, [fetchStops, fetchTrips])
+  }, [fetchStops, fetchTrips, fetchVehiclePositions])
 
   return {
     stops,
     trips,
+    vehiclePositions,
     loading,
     error,
     refetchStops: fetchStops,
     refetchTrips: fetchTrips,
+    refetchVehiclePositions: fetchVehiclePositions,
   }
 }

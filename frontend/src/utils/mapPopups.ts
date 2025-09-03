@@ -1,4 +1,4 @@
-import { Stop, Trip, TripStop } from '../types/map'
+import { Stop, Trip, TripStop, VehiclePosition } from '../types/map'
 
 export const createStopPopupContent = (stop: Stop): string => {
   return `
@@ -63,6 +63,60 @@ export const createTripPopupContent = (
       <div style="font-size: 12px; margin-bottom: 2px;"><strong>Stops:</strong> ${validStops.length}</div>
       ${trip.dispatcher_name ? `<div style="font-size: 12px; margin-bottom: 2px;"><strong>Dispatcher:</strong> ${trip.dispatcher_name}</div>` : ''}
       ${trip.planned_start_date ? `<div style="font-size: 12px;"><strong>Planned Start:</strong> ${trip.planned_start_date} ${trip.planned_start_time}</div>` : ''}
+    </div>
+  `
+}
+
+export const createVehiclePopupContent = (
+  position: VehiclePosition
+): string => {
+  const getEngineStatusBackground = (status: string) => {
+    switch (status) {
+      case 'on':
+        return '#f0fff4'
+      case 'idle':
+        return '#fefcbf'
+      case 'off':
+        return '#f7fafc'
+      default:
+        return '#f7fafc'
+    }
+  }
+
+  const getEngineStatusColor = (status: string) => {
+    switch (status) {
+      case 'on':
+        return '#38a169'
+      case 'idle':
+        return '#d69e2e'
+      case 'off':
+        return '#666'
+      default:
+        return '#666'
+    }
+  }
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return date.toLocaleString()
+  }
+
+  return `
+    <div style="padding: 8px; min-width: 200px;">
+      <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">
+        ${position.vehicle_license_plate}
+      </div>
+      <div style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; background-color: ${getEngineStatusBackground(position.engine_status)}; color: ${getEngineStatusColor(position.engine_status)};">
+        ${position.engine_status}
+      </div>
+      <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+        ${position.vehicle_make_model}
+      </div>
+      <div style="font-size: 12px; margin-bottom: 2px;"><strong>Speed:</strong> ${parseFloat(position.speed).toFixed(0)} km/h</div>
+      <div style="font-size: 12px; margin-bottom: 2px;"><strong>Heading:</strong> ${parseFloat(position.heading).toFixed(0)}°</div>
+      ${position.fuel_level ? `<div style="font-size: 12px; margin-bottom: 2px;"><strong>Fuel:</strong> ${parseFloat(position.fuel_level).toFixed(0)}%</div>` : ''}
+      ${position.odometer ? `<div style="font-size: 12px; margin-bottom: 2px;"><strong>Odometer:</strong> ${parseFloat(position.odometer).toFixed(0)} km</div>` : ''}
+      <div style="font-size: 11px; color: #999;"><strong>Last Update:</strong> ${formatTimestamp(position.timestamp)}</div>
     </div>
   `
 }

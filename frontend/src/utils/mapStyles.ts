@@ -42,6 +42,32 @@ export const createArrowElement = (color: string): HTMLDivElement => {
   return arrowElement
 }
 
+export const createVehicleArrowElement = (
+  isLive: boolean = true,
+  heading: number = 0
+): HTMLDivElement => {
+  const container = document.createElement('div')
+  container.style.width = '24px'
+  container.style.height = '24px'
+  container.style.cursor = 'pointer'
+
+  const arrowElement = document.createElement('div')
+  arrowElement.style.width = '24px'
+  arrowElement.style.height = '24px'
+  arrowElement.style.backgroundImage = isLive
+    ? 'url(/src/assets/position-live.png)'
+    : 'url(/src/assets/position-outdated.png)'
+  arrowElement.style.backgroundSize = 'contain'
+  arrowElement.style.backgroundRepeat = 'no-repeat'
+  arrowElement.style.backgroundPosition = 'center'
+  arrowElement.style.transform = `rotate(${heading}deg)`
+  arrowElement.style.transformOrigin = 'center'
+
+  container.appendChild(arrowElement)
+
+  return container
+}
+
 export const getMapCustomCSS = (): string => {
   return `
     .custom-popup .mapboxgl-popup-close-button {

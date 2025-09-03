@@ -13,13 +13,14 @@ const MapView: React.FC = () => {
   const map = useRef<mapboxgl.Map | null>(null)
 
   // Custom hooks for data and layer management
-  const { stops, trips, loading, error } = useMapData()
+  const { stops, trips, vehiclePositions, loading, error } = useMapData()
   const {
     addMarkersToMap,
     addTripsToMap,
+    addVehiclesToMap,
     toggleStopVisibility,
     toggleTripVisibility,
-    fitMapToStops,
+    toggleVehicleVisibility,
   } = useMapLayers(map)
 
   // Control states for map layers
@@ -42,6 +43,8 @@ const MapView: React.FC = () => {
       toggleStopVisibility(value)
     } else if (control === 'showTrips') {
       toggleTripVisibility(value)
+    } else if (control === 'showVehicles') {
+      toggleVehicleVisibility(value)
     }
   }
 
@@ -76,9 +79,9 @@ const MapView: React.FC = () => {
         // Initialize map
         map.current = new mapboxgl.Map({
           container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [10.0, 54.0], // Center of Europe
-          zoom: 4,
+          style: 'mapbox://styles/mapbox/navigation-night-v1',
+          center: [2.3522, 48.8566], // Paris, France
+          zoom: 6,
         })
 
         map.current.on('load', () => {
@@ -112,16 +115,18 @@ const MapView: React.FC = () => {
 
     addMarkersToMap(stops, controls.showStops)
     addTripsToMap(trips, controls.showTrips)
-    fitMapToStops(stops)
+    addVehiclesToMap(vehiclePositions, controls.showVehicles)
   }, [
     mapReady,
     stops,
     trips,
+    vehiclePositions,
     addMarkersToMap,
     addTripsToMap,
-    fitMapToStops,
+    addVehiclesToMap,
     controls.showStops,
     controls.showTrips,
+    controls.showVehicles,
   ])
 
   if (!mapboxToken) {

@@ -47,7 +47,6 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
             isChecked={controls.showVehicles}
             onChange={(e) => onControlChange('showVehicles', e.target.checked)}
             colorScheme="blue"
-            isDisabled
           />
         </HStack>
         <HStack justify="space-between">
