@@ -518,3 +518,178 @@ class GetOrdersAPITestCase(TripsAPITestCase):
             stop = Stop.objects.get(id=stop_data['id'])
             self.assertAlmostEqual(float(str(stop.latitude)), lat, places=5)
             self.assertAlmostEqual(float(str(stop.longitude)), lng, places=5)
+
+class TripStopOrderConstraintTestCase(TripsAPITestCase):
+    def setUp(self):
+        super().setUp()
+        # Create additional stops for testing
+        self.stop3 = Stop.objects.create(
+            name='Middle Stop',
+            address='300 Middle Ave',
+            latitude=39.9526,
+            longitude=-75.1652,
+            stop_type='unloading',
+            contact_name='Middle Contact',
+            contact_phone='555-0003'
+        )
+
+        # Create a trip with multiple ordered stops
+        self.trip_stop2 = TripStop.objects.create(
+            trip=self.trip,
+            stop=self.stop2,
+            order=2,
+            planned_arrival_time=time(10, 0),
+            notes='Second stop'
+        )
+
+        self.trip_stop3 = TripStop.objects.create(
+            trip=self.trip,
+            stop=self.stop3,
+            order=3,
+            planned_arrival_time=time(11, 0),
+            notes='Third stop'
+        )
+
+    def test_delete_middle_stop_breaks_order_constraint(self):
+        """Test that deleting a middle stop and adding a new one fails due to order constraint"""
+        # Verify initial state - should have 3 stops with orders 1, 2, 3
+        trip_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
+        self.assertEqual(trip_stops.count(), 3)
+        self.assertEqual([ts.order for ts in trip_stops], [1, 2, 3])
+
+        # Delete the middle stop (order=2)
+        response = self.authenticated_request('DELETE', f'/api/trip-stops/{self.trip_stop2.id}/')
+        self.assertEqual(response.status_code, 204)
+
+        # Verify deletion
+        self.assertFalse(TripStop.objects.filter(id=self.trip_stop2.id).exists())
+
+        # Now we have stops with orders [1, 3], but trying to add order=2 should work
+        # This currently fails due to the unique constraint bug
+        new_stop = Stop.objects.create(
+            name='New Middle Stop',
+            address='250 New Middle St',
+            stop_type='loading'
+        )
+
+        new_trip_stop_data = {
+            'trip': self.trip.id,
+            'stop': new_stop.id,
+            'order': 2,  # This should be valid since order=2 was deleted
+            'planned_arrival_time': '10:30:00',
+            'notes': 'New middle stop'
+        }
+
+        # After the fix, this should work without any issues
+        response = self.authenticated_request('POST',
+            '/api/trip-stops/',
+            data=json.dumps(new_trip_stop_data),
+            content_type='application/json'
+        )
+
+        # Should succeed now that the bug is fixed
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data['order'], 2)
+
+        # Verify the trip now has the expected stops in order
+        trip_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
+        orders = [ts.order for ts in trip_stops]
+        # Should have orders [1, 2, 3] where order 2 is the new stop and order 3 remained unchanged
+        self.assertEqual(orders, [1, 2, 3])
+
+    def test_delete_last_stop_and_add_multiple_stops(self):
+        """Test deleting the last stop and adding multiple new stops"""
+        # Delete the last stop (order=3)
+        response = self.authenticated_request('DELETE', f'/api/trip-stops/{self.trip_stop3.id}/')
+        self.assertEqual(response.status_code, 204)
+
+        # Try to add two new stops with orders 3 and 4
+        new_stop1 = Stop.objects.create(name='New Stop 1', address='400 New St', stop_type='loading')
+        new_stop2 = Stop.objects.create(name='New Stop 2', address='500 New St', stop_type='unloading')
+
+        # Add first new stop
+        response1 = self.authenticated_request('POST', '/api/trip-stops/',
+            data=json.dumps({
+                'trip': self.trip.id,
+                'stop': new_stop1.id,
+                'order': 3,
+                'planned_arrival_time': '11:00:00'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response1.status_code, 201)
+
+        # Add second new stop
+        response2 = self.authenticated_request('POST', '/api/trip-stops/',
+            data=json.dumps({
+                'trip': self.trip.id,
+                'stop': new_stop2.id,
+                'order': 4,
+                'planned_arrival_time': '12:00:00'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response2.status_code, 201)
+
+    def test_order_constraint_with_gaps(self):
+        """Test that order constraint allows gaps in ordering"""
+        # Delete middle stop to create gap
+        self.trip_stop2.delete()
+
+        # Should be able to create stops with orders that skip numbers
+        new_stop = Stop.objects.create(name='Skip Order Stop', address='600 Skip St', stop_type='loading')
+
+        response = self.authenticated_request('POST', '/api/trip-stops/',
+            data=json.dumps({
+                'trip': self.trip.id,
+                'stop': new_stop.id,
+                'order': 5,  # Skip order 4
+                'planned_arrival_time': '13:00:00'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+
+        # Verify final order sequence
+        trip_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
+        orders = [ts.order for ts in trip_stops]
+        self.assertEqual(orders, [1, 3, 5])  # Should have gaps
+
+    def test_duplicate_order_constraint(self):
+        """Test that duplicate orders are properly handled by shifting existing stops"""
+        new_stop = Stop.objects.create(name='Duplicate Order Stop', address='700 Dup St', stop_type='loading')
+
+        # Verify initial state - should have 3 stops with orders 1, 2, 3
+        initial_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
+        initial_orders = [ts.order for ts in initial_stops]
+        self.assertEqual(initial_orders, [1, 2, 3])
+
+        # Try to create a stop with order=1 (already exists)
+        response = self.authenticated_request('POST', '/api/trip-stops/',
+            data=json.dumps({
+                'trip': self.trip.id,
+                'stop': new_stop.id,
+                'order': 1,  # This order already exists
+                'planned_arrival_time': '08:30:00'
+            }),
+            content_type='application/json'
+        )
+
+        # After fix, this should succeed by shifting existing stops
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data['order'], 1)  # New stop should get the requested order
+
+        # Verify that existing stops were shifted
+        all_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
+        final_orders = [ts.order for ts in all_stops]
+        # Should now have orders [1, 2, 3, 4] where the new stop is at order 1
+        # and the original stops are shifted to 2, 3, 4
+        self.assertEqual(final_orders, [1, 2, 3, 4])
+        self.assertEqual(all_stops.count(), 4)
+
+        # Verify the new stop is at order 1
+        new_trip_stop = TripStop.objects.get(id=data['id'])
+        self.assertEqual(new_trip_stop.order, 1)
+        self.assertEqual(new_trip_stop.stop, new_stop)

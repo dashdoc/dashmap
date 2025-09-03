@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     StopListCreateView, StopDetailView, GenerateFakeView,
     TripListCreateView, TripDetailView, TripNotifyDriverView,
-    TripStopListCreateView, TripStopDetailView
+    TripStopListCreateView, TripStopDetailView, TripStopReorderView
 )
 
 urlpatterns = [
@@ -14,4 +14,5 @@ urlpatterns = [
     path('trips/<int:pk>/notify-driver/', TripNotifyDriverView.as_view(), name='trip-notify-driver'),
     path('trip-stops/', TripStopListCreateView.as_view(), name='trip-stop-list-create'),
     path('trip-stops/<int:pk>/', TripStopDetailView.as_view(), name='trip-stop-detail'),
+    path('trips/<int:trip_pk>/reorder-stops/', TripStopReorderView.as_view(), name='trip-stop-reorder'),
 ]

@@ -388,14 +388,41 @@ class TripStopListCreateView(View):
 
     def post(self, request):
         try:
+            from django.db import transaction
+            from django.db.utils import IntegrityError
+
             data = json.loads(request.body)
-            trip_stop = TripStop.objects.create(
-                trip_id=data['trip'],
-                stop_id=data['stop'],
-                order=data['order'],
-                planned_arrival_time=data['planned_arrival_time'],
-                notes=data.get('notes', '')
-            )
+            trip_id = data['trip']
+            requested_order = data['order']
+
+            with transaction.atomic():
+                # Check if the requested order already exists for this trip
+                existing_stop = TripStop.objects.filter(
+                    trip_id=trip_id,
+                    order=requested_order
+                ).first()
+
+                if existing_stop:
+                    # Shift existing stops to make room for the new stop
+                    stops_to_shift = TripStop.objects.filter(
+                        trip_id=trip_id,
+                        order__gte=requested_order
+                    ).order_by('order')
+
+                    # Shift orders up by 1 starting from the end to avoid conflicts
+                    for stop in reversed(list(stops_to_shift)):
+                        stop.order += 1
+                        stop.save()
+
+                # Create the new trip stop
+                trip_stop = TripStop.objects.create(
+                    trip_id=trip_id,
+                    stop_id=data['stop'],
+                    order=requested_order,
+                    planned_arrival_time=data['planned_arrival_time'],
+                    notes=data.get('notes', '')
+                )
+
             trip_stop.refresh_from_db()
             return JsonResponse({
                 'id': trip_stop.id,
@@ -417,6 +444,8 @@ class TripStopListCreateView(View):
             }, status=201)
         except (KeyError, json.JSONDecodeError, ValueError) as e:
             return JsonResponse({'error': 'Invalid data'}, status=400)
+        except IntegrityError as e:
+            return JsonResponse({'error': 'Order conflict - unable to create trip stop'}, status=400)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TripStopDetailView(View):
@@ -489,8 +518,90 @@ class TripStopDetailView(View):
         if not trip_stop:
             return JsonResponse({'error': 'Trip stop not found'}, status=404)
 
+        trip = trip_stop.trip
+        deleted_order = trip_stop.order
+
+        # Delete the trip stop
         trip_stop.delete()
+
+        # Reorder remaining stops to close gaps
+        remaining_stops = TripStop.objects.filter(
+            trip=trip,
+            order__gt=deleted_order
+        ).order_by('order')
+
+        # Shift all stops with higher order numbers down by 1
+        for stop in remaining_stops:
+            stop.order -= 1
+            stop.save()
+
         return JsonResponse({}, status=204)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TripStopReorderView(View):
+    def post(self, request, trip_pk):
+        """Reorder trip stops for a given trip"""
+        try:
+            from django.db import transaction
+
+            data = json.loads(request.body)
+            new_orders = data.get('orders', [])  # Expected format: [{'id': stop_id, 'order': new_order}, ...]
+
+            if not new_orders:
+                return JsonResponse({'error': 'No orders provided'}, status=400)
+
+            # Verify the trip exists
+            try:
+                trip = Trip.objects.get(pk=trip_pk)
+            except Trip.DoesNotExist:
+                return JsonResponse({'error': 'Trip not found'}, status=404)
+
+            with transaction.atomic():
+                # Validate that all provided stop IDs belong to this trip
+                provided_stop_ids = [item['id'] for item in new_orders]
+                existing_stops = TripStop.objects.filter(
+                    trip=trip,
+                    id__in=provided_stop_ids
+                )
+
+                if len(existing_stops) != len(provided_stop_ids):
+                    return JsonResponse({'error': 'Some trip stops do not belong to this trip'}, status=400)
+
+                # Update the orders
+                for order_item in new_orders:
+                    trip_stop = TripStop.objects.get(id=order_item['id'], trip=trip)
+                    trip_stop.order = order_item['order']
+                    trip_stop.save()
+
+            # Return updated trip stops
+            updated_stops = TripStop.objects.filter(trip=trip).order_by('order')
+            data = []
+            for trip_stop in updated_stops:
+                data.append({
+                    'id': trip_stop.id,
+                    'trip': trip_stop.trip.id,
+                    'stop': {
+                        'id': trip_stop.stop.id,
+                        'name': trip_stop.stop.name,
+                        'address': trip_stop.stop.address,
+                        'latitude': str(trip_stop.stop.latitude) if trip_stop.stop.latitude else None,
+                        'longitude': str(trip_stop.stop.longitude) if trip_stop.stop.longitude else None,
+                        'stop_type': trip_stop.stop.stop_type
+                    },
+                    'order': trip_stop.order,
+                    'planned_arrival_time': trip_stop.planned_arrival_time.isoformat(),
+                    'actual_arrival_datetime': trip_stop.actual_arrival_datetime.isoformat() if trip_stop.actual_arrival_datetime else None,
+                    'actual_departure_datetime': trip_stop.actual_departure_datetime.isoformat() if trip_stop.actual_departure_datetime else None,
+                    'notes': trip_stop.notes,
+                    'is_completed': trip_stop.is_completed
+                })
+
+            return JsonResponse({'results': data}, status=200)
+
+        except (KeyError, json.JSONDecodeError, ValueError) as e:
+            return JsonResponse({'error': 'Invalid data format'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GenerateFakeView(View):

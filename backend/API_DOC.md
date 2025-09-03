@@ -346,7 +346,10 @@ Includes all above fields plus:
 ### Trip Stop Details
 - **GET** `/api/trip-stops/{id}/` - Get trip stop details
 - **PUT** `/api/trip-stops/{id}/` - Update trip stop
-- **DELETE** `/api/trip-stops/{id}/` - Delete trip stop
+- **DELETE** `/api/trip-stops/{id}/` - Delete trip stop (automatically reorders remaining stops)
+
+### Trip Stop Reordering
+- **POST** `/api/trips/{trip_id}/reorder-stops/` - Bulk reorder trip stops
 
 **Trip Stop Object:**
 ```json
@@ -369,6 +372,58 @@ Includes all above fields plus:
   "is_completed": false
 }
 ```
+
+#### Trip Stop Order Management
+
+**Creating Trip Stops with Order Conflicts:**
+When creating a trip stop with an order that already exists, the system automatically shifts existing stops to higher order numbers to make room for the new stop.
+
+Example: If a trip has stops with orders [1, 2, 3] and you create a new stop with order=2, the result will be:
+- New stop: order=2
+- Existing stops: orders [1, 3, 4] (original order=2 and order=3 are shifted up)
+
+**Deleting Trip Stops:**
+When a trip stop is deleted, remaining stops with higher order numbers are automatically shifted down to close gaps and maintain consecutive ordering.
+
+Example: If a trip has stops with orders [1, 2, 3] and you delete the stop with order=2, the result will be:
+- Remaining stops: orders [1, 2] (original order=3 is shifted down to order=2)
+
+**Bulk Reordering:**
+Use the reorder endpoint to update multiple trip stop orders in a single transaction.
+
+**POST** `/api/trips/{trip_id}/reorder-stops/`
+
+Request:
+```json
+{
+  "orders": [
+    {"id": 10, "order": 1},
+    {"id": 11, "order": 2},
+    {"id": 12, "order": 3}
+  ]
+}
+```
+
+Response:
+```json
+{
+  "results": [
+    {
+      "id": 10,
+      "trip": 5,
+      "stop": {...},
+      "order": 1,
+      "planned_arrival_time": "09:00:00",
+      "actual_arrival_datetime": null,
+      "actual_departure_datetime": null,
+      "notes": "",
+      "is_completed": false
+    }
+  ]
+}
+```
+
+All trip stop IDs in the request must belong to the specified trip. The response returns all trip stops for the trip in their new order.
 
 ## Error Responses
 
