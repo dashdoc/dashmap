@@ -19,6 +19,31 @@ export const useMapLayers = (
   const stopMarkers = useRef<mapboxgl.Marker[]>([])
   const vehicleMarkers = useRef<mapboxgl.Marker[]>([])
   const tripSources = useRef<string[]>([])
+  const activePopups = useRef<mapboxgl.Popup[]>([])
+
+  const closeAllPopups = useCallback(() => {
+    activePopups.current.forEach((popup) => popup.remove())
+    activePopups.current = []
+  }, [])
+
+  // Add click-outside behavior to close all popups
+  const setupMapClickHandler = useCallback(() => {
+    if (!map.current) return
+
+    map.current.on('click', (e) => {
+      // Check if click was on a marker or trip line
+      const features = map.current!.queryRenderedFeatures(e.point)
+      const clickedOnFeature = features.some(
+        (feature) =>
+          feature.source && feature.source.toString().startsWith('trip-')
+      )
+
+      // If not clicking on a feature and there are active popups, close them
+      if (!clickedOnFeature && activePopups.current.length > 0) {
+        closeAllPopups()
+      }
+    })
+  }, [map, closeAllPopups])
 
   const addMarkersToMap = useCallback(
     (stops: Stop[], showStops: boolean) => {
@@ -54,6 +79,19 @@ export const useMapLayers = (
           className: 'custom-popup',
         }).setHTML(popupContent)
 
+        // Close all other popups when this one opens
+        popup.on('open', () => {
+          // Remove this popup from activePopups if it exists, then close others
+          activePopups.current = activePopups.current.filter((p) => p !== popup)
+          closeAllPopups()
+          activePopups.current.push(popup)
+        })
+
+        // Remove from active popups when closed
+        popup.on('close', () => {
+          activePopups.current = activePopups.current.filter((p) => p !== popup)
+        })
+
         const marker = new mapboxgl.Marker(markerElement)
           .setLngLat([lng, lat])
           .setPopup(popup)
@@ -67,7 +105,7 @@ export const useMapLayers = (
         markerEl.style.display = showStops ? 'block' : 'none'
       })
     },
-    [map]
+    [map, closeAllPopups]
   )
 
   const addTripsToMap = useCallback(
@@ -165,8 +203,7 @@ export const useMapLayers = (
           },
           paint: {
             'line-color': statusColor,
-            'line-width': 3,
-            'line-opacity': 0.8,
+            'line-width': 5,
           },
         })
 
@@ -208,6 +245,17 @@ export const useMapLayers = (
             className: 'custom-popup',
           }).setHTML(popupContent)
 
+          // Close all other popups when this one opens
+          closeAllPopups()
+          activePopups.current.push(popup)
+
+          // Remove from active popups when closed
+          popup.on('close', () => {
+            activePopups.current = activePopups.current.filter(
+              (p) => p !== popup
+            )
+          })
+
           popup.setLngLat(coordinates).addTo(map.current!)
         })
 
@@ -221,7 +269,7 @@ export const useMapLayers = (
         })
       })
     },
-    [map]
+    [map, closeAllPopups]
   )
 
   const toggleStopVisibility = useCallback((showStops: boolean) => {
@@ -296,6 +344,19 @@ export const useMapLayers = (
           className: 'custom-popup',
         }).setHTML(popupContent)
 
+        // Close all other popups when this one opens
+        popup.on('open', () => {
+          // Remove this popup from activePopups if it exists, then close others
+          activePopups.current = activePopups.current.filter((p) => p !== popup)
+          closeAllPopups()
+          activePopups.current.push(popup)
+        })
+
+        // Remove from active popups when closed
+        popup.on('close', () => {
+          activePopups.current = activePopups.current.filter((p) => p !== popup)
+        })
+
         const marker = new mapboxgl.Marker(markerElement)
           .setLngLat([lng, lat])
           .setPopup(popup)
@@ -308,7 +369,7 @@ export const useMapLayers = (
         markerElement.style.display = showVehicles ? 'block' : 'none'
       })
     },
-    [map]
+    [map, closeAllPopups]
   )
 
   const toggleVehicleVisibility = useCallback((showVehicles: boolean) => {
@@ -345,6 +406,7 @@ export const useMapLayers = (
     toggleStopVisibility,
     toggleTripVisibility,
     toggleVehicleVisibility,
+    setupMapClickHandler,
     fitMapToStops,
   }
 }

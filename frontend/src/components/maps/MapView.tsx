@@ -21,6 +21,7 @@ const MapView: React.FC = () => {
     toggleStopVisibility,
     toggleTripVisibility,
     toggleVehicleVisibility,
+    setupMapClickHandler,
   } = useMapLayers(map)
 
   // Control states for map layers
@@ -108,6 +109,12 @@ const MapView: React.FC = () => {
       }
     }
   }, [mapboxToken])
+
+  // Setup map click handler when map is ready
+  useEffect(() => {
+    if (!mapReady || !map.current) return
+    setupMapClickHandler()
+  }, [mapReady, setupMapClickHandler])
 
   // Add layers when both map is ready and data is available
   useEffect(() => {
