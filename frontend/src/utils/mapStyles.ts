@@ -31,17 +31,6 @@ export const createStopMarkerElement = (
   return markerElement
 }
 
-export const createArrowElement = (color: string): HTMLDivElement => {
-  const arrowElement = document.createElement('div')
-  arrowElement.style.width = '0'
-  arrowElement.style.height = '0'
-  arrowElement.style.borderLeft = '8px solid transparent'
-  arrowElement.style.borderRight = '8px solid transparent'
-  arrowElement.style.borderBottom = `12px solid ${color}`
-  arrowElement.style.opacity = '0.8'
-  return arrowElement
-}
-
 export const createVehicleArrowElement = (
   isLive: boolean = true,
   heading: number = 0

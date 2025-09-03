@@ -9,7 +9,6 @@ import {
 import {
   getStatusColor,
   createStopMarkerElement,
-  createArrowElement,
   createVehicleArrowElement,
 } from '../utils/mapStyles'
 
@@ -20,11 +19,24 @@ export const useMapLayers = (
   const vehicleMarkers = useRef<mapboxgl.Marker[]>([])
   const tripSources = useRef<string[]>([])
   const activePopups = useRef<mapboxgl.Popup[]>([])
+  const selectedTripId = useRef<number | null>(null)
 
   const closeAllPopups = useCallback(() => {
     activePopups.current.forEach((popup) => popup.remove())
     activePopups.current = []
-  }, [])
+
+    // Reset selected trip and update all trip patterns
+    if (selectedTripId.current) {
+      const prevSelectedId = selectedTripId.current
+      selectedTripId.current = null
+
+      // Update the previously selected trip pattern back to normal
+      const layerId = `trip-${prevSelectedId}-layer`
+      if (map.current?.getLayer(layerId)) {
+        map.current.setPaintProperty(layerId, 'line-pattern', 'trip-chevron')
+      }
+    }
+  }, [map])
 
   // Add click-outside behavior to close all popups
   const setupMapClickHandler = useCallback(() => {
@@ -192,44 +204,50 @@ export const useMapLayers = (
         })
 
         const statusColor = getStatusColor(trip.status)
+        const patternId = 'trip-chevron'
+
+        // Load chevron pattern images if they don't exist
+        if (!map.current!.hasImage('trip-chevron')) {
+          map.current!.loadImage(
+            '/src/assets/trip-chevron.png',
+            (error, image) => {
+              if (error) throw error
+              if (image && !map.current!.hasImage('trip-chevron')) {
+                map.current!.addImage('trip-chevron', image, { sdf: false })
+              }
+            }
+          )
+        }
+
+        if (!map.current!.hasImage('trip-chevron-selected')) {
+          map.current!.loadImage(
+            '/src/assets/trip-chevron-selected.png',
+            (error, image) => {
+              if (error) throw error
+              if (image && !map.current!.hasImage('trip-chevron-selected')) {
+                map.current!.addImage('trip-chevron-selected', image, {
+                  sdf: false,
+                })
+              }
+            }
+          )
+        }
 
         map.current!.addLayer({
           id: `${sourceId}-layer`,
           type: 'line',
           source: sourceId,
           layout: {
-            'line-join': 'round',
+            'line-join': 'none',
             'line-cap': 'round',
           },
           paint: {
             'line-color': statusColor,
-            'line-width': 5,
+            'line-pattern': patternId,
+            'line-width': 16,
+            'line-opacity': 1.0,
           },
         })
-
-        // Add directional arrows at midpoints
-        for (let i = 0; i < coordinates.length - 1; i++) {
-          const start = coordinates[i]
-          const end = coordinates[i + 1]
-          const midPoint = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2]
-
-          // Calculate bearing for arrow direction
-          const bearing =
-            (Math.atan2(end[1] - start[1], end[0] - start[0]) * 180) / Math.PI
-
-          // Create arrow marker
-          const arrowElement = createArrowElement(statusColor)
-          arrowElement.style.transform = `rotate(${bearing + 90}deg)`
-          arrowElement.style.opacity = showTrips ? '0.8' : '0'
-          arrowElement.classList.add('trip-arrow') // Add class for easier identification
-
-          new mapboxgl.Marker({
-            element: arrowElement,
-            anchor: 'center',
-          })
-            .setLngLat(midPoint as [number, number])
-            .addTo(map.current!)
-        }
 
         // Add click handler for trip lines
         map.current!.on('click', `${sourceId}-layer`, (e) => {
@@ -249,11 +267,34 @@ export const useMapLayers = (
           closeAllPopups()
           activePopups.current.push(popup)
 
-          // Remove from active popups when closed
+          // Update selected trip pattern
+          selectedTripId.current = trip.id
+          const layerId = `${sourceId}-layer`
+          if (map.current?.getLayer(layerId)) {
+            map.current.setPaintProperty(
+              layerId,
+              'line-pattern',
+              'trip-chevron-selected'
+            )
+          }
+
+          // Remove from active popups when closed and reset pattern
           popup.on('close', () => {
             activePopups.current = activePopups.current.filter(
               (p) => p !== popup
             )
+
+            // Reset pattern back to normal when popup closes
+            if (selectedTripId.current === trip.id) {
+              selectedTripId.current = null
+              if (map.current?.getLayer(layerId)) {
+                map.current.setPaintProperty(
+                  layerId,
+                  'line-pattern',
+                  'trip-chevron'
+                )
+              }
+            }
           })
 
           popup.setLngLat(coordinates).addTo(map.current!)
