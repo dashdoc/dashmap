@@ -493,7 +493,7 @@ class TripStopDetailView(View):
         return JsonResponse({}, status=204)
 
 @method_decorator(csrf_exempt, name='dispatch')
-class GetOrdersView(View):
+class GenerateFakeView(View):
     def post(self, request):
         """Generate random orders (stops) with faker data"""
         try:

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    StopListCreateView, StopDetailView, GetOrdersView,
+    StopListCreateView, StopDetailView, GenerateFakeView,
     TripListCreateView, TripDetailView, TripNotifyDriverView,
     TripStopListCreateView, TripStopDetailView
 )
@@ -8,7 +8,7 @@ from .views import (
 urlpatterns = [
     path('stops/', StopListCreateView.as_view(), name='stop-list-create'),
     path('stops/<int:pk>/', StopDetailView.as_view(), name='stop-detail'),
-    path('stops/get-orders/', GetOrdersView.as_view(), name='get-orders'),
+    path('stops/generate-fake/', GenerateFakeView.as_view(), name='generate-fake-stops'),
     path('trips/', TripListCreateView.as_view(), name='trip-list-create'),
     path('trips/<int:pk>/', TripDetailView.as_view(), name='trip-detail'),
     path('trips/<int:pk>/notify-driver/', TripNotifyDriverView.as_view(), name='trip-notify-driver'),

@@ -231,8 +231,8 @@ All list endpoints return data in this format:
 - When creating stops, coordinates can be provided or omitted (will be `null`)
 - The fake stop generator automatically creates realistic coordinates
 
-### Get Orders (Generate Random Stops)
-- **POST** `/api/stops/get-orders/` - Generate 3-8 random stops with faker data
+### Generate Fake Stops
+- **POST** `/api/stops/generate-fake/` - Generate 3-8 random stops with faker data
 
 **Response:**
 ```json
@@ -422,6 +422,72 @@ Includes all above fields plus:
 7. **Notify Driver:** POST `/api/trips/{id}/notify-driver/`
 8. **Update Trip Status:** PUT `/api/trips/{id}/` (change status to "planned")
 9. **Logout:** POST `/api/auth/logout/` (invalidate token)
+
+## Positions (Telematics Data)
+
+Vehicle position tracking for telematics integration.
+
+### List/Create Positions
+- **GET** `/api/positions/` - List all positions (supports `?vehicle={id}` filter)
+- **POST** `/api/positions/` - Create new position record
+
+### Generate Fake Positions
+- **POST** `/api/positions/generate-fake/` - Generate fake telematics data for testing
+
+**Position Object:**
+```json
+{
+  "id": 1,
+  "vehicle_id": 1,
+  "vehicle_license_plate": "ABC-123",
+  "latitude": "40.7589123",
+  "longitude": "-73.9851456",
+  "speed": "65.50",
+  "heading": "180.00",
+  "altitude": "150.25",
+  "timestamp": "2024-01-15T14:30:00Z",
+  "odometer": "25847.50",
+  "fuel_level": "75.30",
+  "engine_status": "on",
+  "created_at": "2024-01-15T14:30:05Z"
+}
+```
+
+**Create Position Request:**
+```json
+{
+  "vehicle_id": 1,
+  "latitude": "40.7589123",
+  "longitude": "-73.9851456",
+  "speed": "65.50",
+  "heading": "180.00",
+  "altitude": "150.25",
+  "timestamp": "2024-01-15T14:30:00Z",
+  "odometer": "25847.50",
+  "fuel_level": "75.30",
+  "engine_status": "on"
+}
+```
+
+**Generate Fake Positions Request:**
+```json
+{
+  "vehicle_id": 1,
+  "count": 10,
+  "base_latitude": 40.7589,
+  "base_longitude": -73.9851
+}
+```
+
+**Field Details:**
+- `latitude`/`longitude`: Decimal degrees (required)
+- `speed`: Speed in km/h (required)
+- `heading`: Heading in degrees 0-360 (required)
+- `altitude`: Altitude in meters (optional)
+- `timestamp`: When position was recorded (optional, defaults to current time)
+- `odometer`: Vehicle odometer reading in km (optional)
+- `fuel_level`: Fuel level percentage 0-100 (optional)
+- `engine_status`: One of `"on"`, `"off"`, `"idle"` (defaults to `"off"`)
 
 ## Admin Interface
 

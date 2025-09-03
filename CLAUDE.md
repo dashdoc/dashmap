@@ -7,5 +7,5 @@ Read backend/API_DOC.md to understand the backend API.
 
 Use `uv` for dependencies management.
 Always update backend/API_DOC.md whenever you change the API.
-Always add or update backend tests when you work on the API.
+Always add or update backend tests when you work on the API. Run them to verify that everything works correctly.
 DO NOT INSTALL django-rest-framework, keep it simple base Django only.

@@ -381,7 +381,7 @@ class GetOrdersAPITestCase(TripsAPITestCase):
         """Test that the get orders endpoint creates random stops successfully"""
         initial_stop_count = Stop.objects.count()
 
-        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        response = self.authenticated_request('POST', '/api/stops/generate-fake/')
         self.assertEqual(response.status_code, 201)
 
         data = response.json()
@@ -428,7 +428,7 @@ class GetOrdersAPITestCase(TripsAPITestCase):
 
     def test_get_orders_creates_realistic_data(self):
         """Test that generated data is realistic"""
-        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        response = self.authenticated_request('POST', '/api/stops/generate-fake/')
         self.assertEqual(response.status_code, 201)
 
         data = response.json()
@@ -461,7 +461,7 @@ class GetOrdersAPITestCase(TripsAPITestCase):
 
     def test_get_orders_phone_length_constraint(self):
         """Test that phone numbers are properly truncated to fit model constraints"""
-        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        response = self.authenticated_request('POST', '/api/stops/generate-fake/')
         self.assertEqual(response.status_code, 201)
 
         data = response.json()
@@ -471,7 +471,7 @@ class GetOrdersAPITestCase(TripsAPITestCase):
 
     def test_get_orders_coordinates_persistence(self):
         """Test that generated coordinates are properly saved to database"""
-        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        response = self.authenticated_request('POST', '/api/stops/generate-fake/')
         self.assertEqual(response.status_code, 201)
 
         data = response.json()
@@ -495,7 +495,7 @@ class GetOrdersAPITestCase(TripsAPITestCase):
 
     def test_get_orders_coordinate_precision(self):
         """Test that coordinates are valid decimal numbers"""
-        response = self.authenticated_request('POST', '/api/stops/get-orders/')
+        response = self.authenticated_request('POST', '/api/stops/generate-fake/')
         self.assertEqual(response.status_code, 201)
 
         data = response.json()
