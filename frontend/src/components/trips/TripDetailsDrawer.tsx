@@ -187,7 +187,13 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   )
 
   return (
-    <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xl">
+    <Drawer
+      isOpen={isOpen}
+      placement="right"
+      onClose={onClose}
+      size="xl"
+      motionPreset="slideInRight"
+    >
       <DrawerOverlay />
       <DrawerContent>
         <DrawerCloseButton />

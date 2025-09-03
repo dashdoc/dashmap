@@ -13,7 +13,8 @@ import {
 } from '../utils/mapStyles'
 
 export const useMapLayers = (
-  map: React.MutableRefObject<mapboxgl.Map | null>
+  map: React.MutableRefObject<mapboxgl.Map | null>,
+  onTripClick?: (trip: Trip) => void
 ) => {
   const stopMarkers = useRef<mapboxgl.Marker[]>([])
   const vehicleMarkers = useRef<mapboxgl.Marker[]>([])
@@ -124,33 +125,7 @@ export const useMapLayers = (
     (trips: Trip[], showTrips: boolean) => {
       if (!map.current) return
 
-      // Check if we already have the right number of trip sources
-      const expectedSources = trips.filter(
-        (trip) => trip.trip_stops && trip.trip_stops.length >= 2
-      ).length
-
-      if (tripSources.current.length === expectedSources) {
-        // Just toggle visibility if sources already exist
-        tripSources.current.forEach((sourceId) => {
-          const layerId = `${sourceId}-layer`
-          if (map.current?.getLayer(layerId)) {
-            map.current.setLayoutProperty(
-              layerId,
-              'visibility',
-              showTrips ? 'visible' : 'none'
-            )
-          }
-        })
-
-        // Toggle arrow markers visibility
-        const arrowElements = document.querySelectorAll('.trip-arrow')
-        arrowElements.forEach((element) => {
-          ;(element as HTMLElement).style.opacity = showTrips ? '0.8' : '0'
-        })
-        return
-      }
-
-      // Clear existing trip sources if count doesn't match
+      // Always clear existing trip sources to ensure fresh data
       tripSources.current.forEach((sourceId) => {
         if (map.current?.getSource(sourceId)) {
           if (map.current?.getLayer(`${sourceId}-layer`)) {
@@ -204,7 +179,11 @@ export const useMapLayers = (
         })
 
         const statusColor = getStatusColor(trip.status)
-        const patternId = 'trip-chevron'
+        // Use selected pattern if this trip is currently selected
+        const patternId =
+          selectedTripId.current === trip.id
+            ? 'trip-chevron-selected'
+            : 'trip-chevron'
 
         // Load chevron pattern images if they don't exist
         if (!map.current!.hasImage('trip-chevron')) {
@@ -240,6 +219,7 @@ export const useMapLayers = (
           layout: {
             'line-join': 'none',
             'line-cap': 'round',
+            visibility: showTrips ? 'visible' : 'none',
           },
           paint: {
             'line-color': statusColor,
@@ -251,53 +231,71 @@ export const useMapLayers = (
 
         // Add click handler for trip lines
         map.current!.on('click', `${sourceId}-layer`, (e) => {
-          const coordinates = e.lngLat
-
-          // Create popup content using the same styling as stops
-          const popupContent = createTripPopupContent(trip, validStops)
-
-          const popup = new mapboxgl.Popup({
-            offset: 25,
-            closeButton: true,
-            closeOnClick: false,
-            className: 'custom-popup',
-          }).setHTML(popupContent)
-
-          // Close all other popups when this one opens
-          closeAllPopups()
-          activePopups.current.push(popup)
-
-          // Update selected trip pattern
-          selectedTripId.current = trip.id
-          const layerId = `${sourceId}-layer`
-          if (map.current?.getLayer(layerId)) {
-            map.current.setPaintProperty(
-              layerId,
-              'line-pattern',
-              'trip-chevron-selected'
-            )
-          }
-
-          // Remove from active popups when closed and reset pattern
-          popup.on('close', () => {
-            activePopups.current = activePopups.current.filter(
-              (p) => p !== popup
-            )
-
-            // Reset pattern back to normal when popup closes
-            if (selectedTripId.current === trip.id) {
-              selectedTripId.current = null
-              if (map.current?.getLayer(layerId)) {
-                map.current.setPaintProperty(
-                  layerId,
-                  'line-pattern',
-                  'trip-chevron'
-                )
-              }
+          if (onTripClick) {
+            // Close all popups and update selected trip pattern
+            closeAllPopups()
+            selectedTripId.current = trip.id
+            const layerId = `${sourceId}-layer`
+            if (map.current?.getLayer(layerId)) {
+              map.current.setPaintProperty(
+                layerId,
+                'line-pattern',
+                'trip-chevron-selected'
+              )
             }
-          })
 
-          popup.setLngLat(coordinates).addTo(map.current!)
+            // Call the trip click callback (for drawer)
+            onTripClick(trip)
+          } else {
+            // Fallback to popup behavior
+            const coordinates = e.lngLat
+
+            // Create popup content using the same styling as stops
+            const popupContent = createTripPopupContent(trip, validStops)
+
+            const popup = new mapboxgl.Popup({
+              offset: 25,
+              closeButton: true,
+              closeOnClick: false,
+              className: 'custom-popup',
+            }).setHTML(popupContent)
+
+            // Close all other popups when this one opens
+            closeAllPopups()
+            activePopups.current.push(popup)
+
+            // Update selected trip pattern
+            selectedTripId.current = trip.id
+            const layerId = `${sourceId}-layer`
+            if (map.current?.getLayer(layerId)) {
+              map.current.setPaintProperty(
+                layerId,
+                'line-pattern',
+                'trip-chevron-selected'
+              )
+            }
+
+            // Remove from active popups when closed and reset pattern
+            popup.on('close', () => {
+              activePopups.current = activePopups.current.filter(
+                (p) => p !== popup
+              )
+
+              // Reset pattern back to normal when popup closes
+              if (selectedTripId.current === trip.id) {
+                selectedTripId.current = null
+                if (map.current?.getLayer(layerId)) {
+                  map.current.setPaintProperty(
+                    layerId,
+                    'line-pattern',
+                    'trip-chevron'
+                  )
+                }
+              }
+            })
+
+            popup.setLngLat(coordinates).addTo(map.current!)
+          }
         })
 
         // Change cursor on hover
@@ -310,7 +308,7 @@ export const useMapLayers = (
         })
       })
     },
-    [map, closeAllPopups]
+    [map, closeAllPopups, onTripClick]
   )
 
   const toggleStopVisibility = useCallback((showStops: boolean) => {
@@ -440,6 +438,68 @@ export const useMapLayers = (
     [map]
   )
 
+  const fitMapToTrip = useCallback(
+    (trip: Trip, withDrawerSpace = false) => {
+      if (!map.current || !trip.trip_stops || trip.trip_stops.length === 0)
+        return
+
+      const bounds = new mapboxgl.LngLatBounds()
+
+      // Add all trip stops to bounds
+      trip.trip_stops.forEach((tripStop) => {
+        if (tripStop.stop.latitude && tripStop.stop.longitude) {
+          const lat = parseFloat(tripStop.stop.latitude)
+          const lng = parseFloat(tripStop.stop.longitude)
+          bounds.extend([lng, lat])
+        }
+      })
+
+      // Adjust padding to account for drawer space
+      const padding = withDrawerSpace
+        ? { top: 100, bottom: 100, left: 100, right: 1000 } // Extra space on right for drawer
+        : 50
+
+      map.current.fitBounds(bounds, {
+        padding,
+        maxZoom: 12,
+      })
+    },
+    [map]
+  )
+
+  const resetSelectedTrip = useCallback(() => {
+    if (selectedTripId.current) {
+      const tripId = selectedTripId.current
+      selectedTripId.current = null
+
+      const layerId = `trip-${tripId}-layer`
+      if (map.current?.getLayer(layerId)) {
+        map.current.setPaintProperty(layerId, 'line-pattern', 'trip-chevron')
+      }
+    }
+  }, [map])
+
+  const forceRefreshTrips = useCallback(
+    (trips: Trip[], showTrips: boolean) => {
+      if (!map.current) return
+
+      // Clear existing trip sources
+      tripSources.current.forEach((sourceId) => {
+        if (map.current?.getSource(sourceId)) {
+          if (map.current?.getLayer(`${sourceId}-layer`)) {
+            map.current.removeLayer(`${sourceId}-layer`)
+          }
+          map.current.removeSource(sourceId)
+        }
+      })
+      tripSources.current = []
+
+      // Re-add all trips
+      addTripsToMap(trips, showTrips)
+    },
+    [map, addTripsToMap]
+  )
+
   return {
     addMarkersToMap,
     addTripsToMap,
@@ -449,5 +509,8 @@ export const useMapLayers = (
     toggleVehicleVisibility,
     setupMapClickHandler,
     fitMapToStops,
+    fitMapToTrip,
+    resetSelectedTrip,
+    forceRefreshTrips,
   }
 }
