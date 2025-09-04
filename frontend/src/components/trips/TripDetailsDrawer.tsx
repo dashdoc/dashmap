@@ -16,18 +16,21 @@ import {
   VStack,
   Box,
   Heading,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
   HStack,
   IconButton,
   Alert,
   AlertIcon,
+  Badge,
+  useToast,
 } from '@chakra-ui/react'
 import { DeleteIcon } from '@chakra-ui/icons'
+import { GripVertical } from 'lucide-react'
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from '@hello-pangea/dnd'
 import axios from 'axios'
 
 interface Trip {
@@ -44,6 +47,7 @@ interface Trip {
 interface Stop {
   id: number
   name: string
+  stop_type: 'loading' | 'unloading'
 }
 
 interface TripStop {
@@ -58,6 +62,7 @@ interface TripDetailsDrawerProps {
   onClose: () => void
   trip: Trip | null
   onTripUpdated: () => void
+  onTripStopsChanged?: () => void
 }
 
 const API_BASE_URL = 'http://localhost:8000/api'
@@ -67,6 +72,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   onClose,
   trip,
   onTripUpdated,
+  onTripStopsChanged,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -82,6 +88,8 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
+  const [isReordering, setIsReordering] = useState(false)
+  const toast = useToast()
 
   const fetchTripDetails = async () => {
     if (!trip) return
@@ -164,6 +172,10 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       })
       await fetchTripDetails()
       setNewStop({ stopId: '', time: '' })
+      // Notify the map to redraw the trip route
+      if (onTripStopsChanged) {
+        onTripStopsChanged()
+      }
     } catch (err) {
       console.error('Error adding stop:', err)
       setError('Failed to add stop')
@@ -176,9 +188,74 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     try {
       await axios.delete(`${API_BASE_URL}/trip-stops/${id}/`)
       await fetchTripDetails()
+      toast({
+        title: 'Stop removed',
+        description: 'The stop has been removed from the trip.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+      // Notify the map to redraw the trip route
+      if (onTripStopsChanged) {
+        onTripStopsChanged()
+      }
     } catch (err) {
       console.error('Error deleting stop:', err)
       setError('Failed to delete stop')
+    }
+  }
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination || !trip) return
+
+    const sourceIndex = result.source.index
+    const destinationIndex = result.destination.index
+
+    if (sourceIndex === destinationIndex) return
+
+    // Create a copy of the trip stops array
+    const reorderedStops = Array.from(tripStops)
+    const [removed] = reorderedStops.splice(sourceIndex, 1)
+    reorderedStops.splice(destinationIndex, 0, removed)
+
+    // Update local state immediately for better UX
+    setTripStops(reorderedStops)
+
+    try {
+      setIsReordering(true)
+
+      // Create the orders array for the API call
+      const orders = reorderedStops.map((stop, index) => ({
+        id: stop.id,
+        order: index + 1, // API expects 1-based ordering
+      }))
+
+      // Call the reorder API
+      await axios.post(`${API_BASE_URL}/trips/${trip.id}/reorder-stops/`, {
+        orders,
+      })
+
+      // Refresh trip details to ensure we have the latest data
+      await fetchTripDetails()
+
+      toast({
+        title: 'Stops reordered',
+        description: 'The trip stops have been reordered successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+      // Notify the map to redraw the trip route
+      if (onTripStopsChanged) {
+        onTripStopsChanged()
+      }
+    } catch (err) {
+      console.error('Error reordering stops:', err)
+      setError('Failed to reorder stops')
+      // Revert to original order on error
+      await fetchTripDetails()
+    } finally {
+      setIsReordering(false)
     }
   }
 
@@ -187,13 +264,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   )
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      placement="right"
-      onClose={onClose}
-      size="xl"
-      motionPreset="slideInRight"
-    >
+    <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xl">
       <DrawerOverlay />
       <DrawerContent>
         <DrawerCloseButton />
@@ -260,38 +331,103 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
             <Box mt={4}>
               <Heading size="md" mb={2}>
                 Stops
+                {isReordering && (
+                  <Box as="span" ml={2} fontSize="sm" color="blue.500">
+                    Reordering...
+                  </Box>
+                )}
               </Heading>
               {tripStops.length === 0 ? (
                 <Box>No stops added.</Box>
               ) : (
-                <Table size="sm">
-                  <Thead>
-                    <Tr>
-                      <Th>#</Th>
-                      <Th>Stop</Th>
-                      <Th>Planned Arrival</Th>
-                      <Th></Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {tripStops.map((ts) => (
-                      <Tr key={ts.id}>
-                        <Td>{ts.order}</Td>
-                        <Td>{ts.stop.name}</Td>
-                        <Td>{ts.planned_arrival_time}</Td>
-                        <Td>
-                          <IconButton
-                            aria-label="Remove stop"
-                            icon={<DeleteIcon />}
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteStop(ts.id)}
-                          />
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="trip-stops">
+                    {(provided) => (
+                      <Box
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        border="1px"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                      >
+                        {tripStops.map((ts, index) => (
+                          <Draggable
+                            key={ts.id}
+                            draggableId={ts.id.toString()}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <Box
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                borderBottom={
+                                  index < tripStops.length - 1
+                                    ? '1px solid'
+                                    : 'none'
+                                }
+                                borderColor="gray.100"
+                                bg={snapshot.isDragging ? 'blue.50' : 'white'}
+                                p={3}
+                                _hover={{ bg: 'gray.50' }}
+                                transition="background-color 0.2s"
+                              >
+                                <HStack spacing={3}>
+                                  <Box
+                                    {...provided.dragHandleProps}
+                                    cursor="grab"
+                                    _active={{ cursor: 'grabbing' }}
+                                    display="flex"
+                                    alignItems="center"
+                                    color="gray.400"
+                                    _hover={{ color: 'gray.600' }}
+                                  >
+                                    <GripVertical size={16} />
+                                  </Box>
+                                  <Box
+                                    minW="24px"
+                                    textAlign="center"
+                                    fontWeight="bold"
+                                    color="blue.600"
+                                    fontSize="sm"
+                                  >
+                                    {index + 1}
+                                  </Box>
+                                  <Box flex="1">
+                                    <Box fontWeight="medium">
+                                      {ts.stop.name}
+                                    </Box>
+                                    <Box fontSize="sm" color="gray.600" mt={1}>
+                                      Arrival: {ts.planned_arrival_time}
+                                    </Box>
+                                  </Box>
+                                  <Badge
+                                    colorScheme={
+                                      ts.stop.stop_type === 'loading'
+                                        ? 'blue'
+                                        : 'green'
+                                    }
+                                    size="sm"
+                                  >
+                                    {ts.stop.stop_type}
+                                  </Badge>
+                                  <IconButton
+                                    aria-label="Remove stop"
+                                    icon={<DeleteIcon />}
+                                    size="sm"
+                                    variant="ghost"
+                                    colorScheme="red"
+                                    onClick={() => handleDeleteStop(ts.id)}
+                                  />
+                                </HStack>
+                              </Box>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </Box>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               )}
 
               <HStack mt={4} spacing={2}>
@@ -304,7 +440,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                 >
                   {availableStops.map((stop) => (
                     <option key={stop.id} value={stop.id}>
-                      {stop.name}
+                      {stop.name} ({stop.stop_type})
                     </option>
                   ))}
                 </Select>
