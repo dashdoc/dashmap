@@ -295,6 +295,28 @@ This endpoint simulates incoming orders by creating random stops with realistic 
   "actual_end_datetime": null,
   "notes": "Standard morning delivery",
   "driver_notified": false,
+  "trip_stops": [
+    {
+      "id": 1,
+      "stop": {
+        "id": 1,
+        "name": "Loading Dock A",
+        "address": "100 Warehouse St",
+        "latitude": "41.878113",
+        "longitude": "-87.629799",
+        "stop_type": "loading",
+        "contact_name": "Dock Manager",
+        "contact_phone": "555-0001",
+        "notes": "Use rear entrance"
+      },
+      "order": 1,
+      "planned_arrival_time": "09:00:00",
+      "actual_arrival_datetime": null,
+      "actual_departure_datetime": null,
+      "notes": "First pickup",
+      "is_completed": false
+    }
+  ],
   "created_at": "2024-01-15T08:00:00Z",
   "updated_at": "2024-01-15T08:00:00Z"
 }

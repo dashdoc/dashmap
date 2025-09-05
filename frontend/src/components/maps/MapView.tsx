@@ -2,7 +2,11 @@ import React, { useEffect, useState, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { Box, Text, useDisclosure } from '@chakra-ui/react'
 import { useMapData } from '../../hooks/useMapData'
-import { useMapLayers } from '../../hooks/useMapLayers'
+import { useStopMarkers } from '../../hooks/useStopMarkers'
+import { useVehicleMarkers } from '../../hooks/useVehicleMarkers'
+import { useTripRoutes } from '../../hooks/useTripRoutes'
+import { useMapClickHandler } from '../../hooks/useMapClickHandler'
+import { useAuth } from '../../contexts/AuthContext'
 import type { MapControls, Trip } from '../../types/map'
 import { getMapCustomCSS } from '../../utils/mapStyles'
 import MapControlsComponent from './MapControls'
@@ -13,6 +17,9 @@ const MapView: React.FC = () => {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
+
+  // Auth context for API calls
+  const { token } = useAuth()
 
   // Custom hooks for data and layer management
   const { stops, trips, vehiclePositions, loading, error, refetchTrips } =
@@ -27,18 +34,24 @@ const MapView: React.FC = () => {
 
   const handleTripStopsChanged = async () => {
     // Refresh the specific selected trip on the map immediately
-    if (selectedTrip) {
+    if (selectedTrip && token) {
       try {
         // Fetch the latest trip data
         const response = await fetch(
-          `http://localhost:8000/api/trips/${selectedTrip.id}/`
+          `http://localhost:8000/api/trips/${selectedTrip.id}/`,
+          {
+            headers: {
+              Authorization: `Token ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
         )
         if (response.ok) {
           const updatedTrip = await response.json()
           // Update the selected trip state
           setSelectedTrip(updatedTrip)
           // Refresh just this trip's route on the map
-          refreshSelectedTrip(updatedTrip, controls.showTrips)
+          tripRoutes.refreshSelectedTrip(updatedTrip, controls.showTrips)
         }
       } catch (error) {
         console.error('Error fetching updated trip:', error)
@@ -50,26 +63,19 @@ const MapView: React.FC = () => {
     await refetchTrips()
   }
 
-  const {
-    addMarkersToMap,
-    addTripsToMap,
-    addVehiclesToMap,
-    toggleStopVisibility,
-    toggleTripVisibility,
-    toggleVehicleVisibility,
-    setupMapClickHandler,
-    fitMapToTrip,
-    resetSelectedTrip,
-    forceRefreshTrips,
-    refreshSelectedTrip,
-  } = useMapLayers(map, (trip: Trip) => {
+  // Initialize focused hooks
+  const stopMarkers = useStopMarkers(map)
+  const vehicleMarkers = useVehicleMarkers(map)
+  const tripRoutes = useTripRoutes(map, (trip: Trip) => {
     setSelectedTrip(trip)
     onDrawerOpen()
     // Fit map to trip with space for drawer after a short delay
     setTimeout(() => {
-      fitMapToTrip(trip, true)
+      tripRoutes.fitMapToTrip(trip, true)
     }, 100)
   })
+
+  const { setupMapClickHandler } = useMapClickHandler(map, tripRoutes.closeAllPopups)
 
   // Drawer state
   const {
@@ -93,14 +99,14 @@ const MapView: React.FC = () => {
   // Effect to force refresh trips when data changes after an update
   useEffect(() => {
     if (shouldRefreshTrips && mapReady && map.current && trips.length > 0) {
-      forceRefreshTrips(trips, controls.showTrips)
+      tripRoutes.forceRefreshTrips(trips, controls.showTrips)
       setShouldRefreshTrips(false)
     }
   }, [
     trips,
     shouldRefreshTrips,
     mapReady,
-    forceRefreshTrips,
+    tripRoutes,
     controls.showTrips,
   ])
 
@@ -109,11 +115,11 @@ const MapView: React.FC = () => {
     setControls((prev) => ({ ...prev, [control]: value }))
 
     if (control === 'showStops') {
-      toggleStopVisibility(value)
+      stopMarkers.toggleVisibility(value)
     } else if (control === 'showTrips') {
-      toggleTripVisibility(value)
+      tripRoutes.toggleVisibility(value)
     } else if (control === 'showVehicles') {
-      toggleVehicleVisibility(value)
+      vehicleMarkers.toggleVisibility(value)
     }
   }
 
@@ -188,17 +194,17 @@ const MapView: React.FC = () => {
   useEffect(() => {
     if (!mapReady || !map.current || stops.length === 0) return
 
-    addMarkersToMap(stops, controls.showStops)
-    addTripsToMap(trips, controls.showTrips)
-    addVehiclesToMap(vehiclePositions, controls.showVehicles)
+    stopMarkers.addMarkersToMap(stops, controls.showStops)
+    tripRoutes.addTripsToMap(trips, controls.showTrips)
+    vehicleMarkers.addVehiclesToMap(vehiclePositions, controls.showVehicles)
   }, [
     mapReady,
     stops,
     trips,
     vehiclePositions,
-    addMarkersToMap,
-    addTripsToMap,
-    addVehiclesToMap,
+    stopMarkers,
+    tripRoutes,
+    vehicleMarkers,
     controls.showStops,
     controls.showTrips,
     controls.showVehicles,
@@ -253,7 +259,7 @@ const MapView: React.FC = () => {
         isOpen={isDrawerOpen}
         onClose={() => {
           setSelectedTrip(null)
-          resetSelectedTrip()
+          tripRoutes.resetSelectedTrip()
           onDrawerClose()
         }}
         trip={selectedTrip}

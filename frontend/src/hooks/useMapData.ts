@@ -56,27 +56,9 @@ export const useMapData = () => {
       }
 
       const data = await response.json()
-
-      // Fetch detailed trip data with stops for each trip
-      const tripsWithDetails = await Promise.all(
-        data.results.map(async (trip: Trip) => {
-          const detailResponse = await fetch(
-            `${apiBaseUrl}/trips/${trip.id}/`,
-            {
-              headers: {
-                Authorization: `Token ${token}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          )
-          if (detailResponse.ok) {
-            return await detailResponse.json()
-          }
-          return trip
-        })
-      )
-
-      setTrips(tripsWithDetails)
+      // The backend now includes trip_stops data in the list response,
+      // eliminating the N+1 query problem
+      setTrips(data.results)
     } catch (error) {
       console.error('Error fetching trips:', error)
     }

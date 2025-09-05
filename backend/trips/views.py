@@ -130,7 +130,7 @@ class StopDetailView(View):
 @method_decorator(csrf_exempt, name='dispatch')
 class TripListCreateView(View):
     def get(self, request):
-        trips = Trip.objects.select_related('vehicle', 'dispatcher').all()
+        trips = Trip.objects.select_related('vehicle', 'dispatcher').prefetch_related('trip_stops__stop').all()
 
         vehicle_id = request.GET.get('vehicle')
         company_id = request.GET.get('company')
@@ -142,6 +142,30 @@ class TripListCreateView(View):
 
         data = []
         for trip in trips:
+            # Include trip_stops data in list view to eliminate N+1 queries
+            trip_stops = []
+            for trip_stop in trip.trip_stops.all().order_by('order'):
+                trip_stops.append({
+                    'id': trip_stop.id,
+                    'stop': {
+                        'id': trip_stop.stop.id,
+                        'name': trip_stop.stop.name,
+                        'address': trip_stop.stop.address,
+                        'latitude': str(trip_stop.stop.latitude) if trip_stop.stop.latitude else None,
+                        'longitude': str(trip_stop.stop.longitude) if trip_stop.stop.longitude else None,
+                        'stop_type': trip_stop.stop.stop_type,
+                        'contact_name': trip_stop.stop.contact_name,
+                        'contact_phone': trip_stop.stop.contact_phone,
+                        'notes': trip_stop.stop.notes
+                    },
+                    'order': trip_stop.order,
+                    'planned_arrival_time': trip_stop.planned_arrival_time.isoformat(),
+                    'actual_arrival_datetime': trip_stop.actual_arrival_datetime.isoformat() if trip_stop.actual_arrival_datetime else None,
+                    'actual_departure_datetime': trip_stop.actual_departure_datetime.isoformat() if trip_stop.actual_departure_datetime else None,
+                    'notes': trip_stop.notes,
+                    'is_completed': trip_stop.is_completed
+                })
+
             data.append({
                 'id': trip.id,
                 'vehicle': trip.vehicle.id,
@@ -156,6 +180,7 @@ class TripListCreateView(View):
                 'actual_end_datetime': trip.actual_end_datetime.isoformat() if trip.actual_end_datetime else None,
                 'notes': trip.notes,
                 'driver_notified': trip.driver_notified,
+                'trip_stops': trip_stops,
                 'created_at': trip.created_at.isoformat(),
                 'updated_at': trip.updated_at.isoformat()
             })
