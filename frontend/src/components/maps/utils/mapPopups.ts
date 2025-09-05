@@ -1,4 +1,4 @@
-import { Stop, Trip, TripStop, VehiclePosition } from '../types/map'
+import type { Stop, Trip, TripStop, VehiclePosition } from '../../../types/map'
 
 export const createStopPopupContent = (stop: Stop): string => {
   return `

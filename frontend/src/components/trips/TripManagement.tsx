@@ -21,30 +21,11 @@ import {
 } from '@chakra-ui/react'
 import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons'
 import { TripForm } from './TripForm'
-import { DeleteConfirmModal } from './DeleteConfirmModal'
+import { ConfirmDialog } from '../common/ConfirmDialog'
 import { TripDetailsDrawer } from './TripDetailsDrawer'
-import axios from 'axios'
+import { get, del } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
-
-interface Trip {
-  id: number
-  vehicle: number
-  vehicle_license_plate: string
-  dispatcher: number
-  dispatcher_name: string
-  name: string
-  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
-  planned_start_date: string
-  planned_start_time: string
-  actual_start_datetime?: string | null
-  actual_end_datetime?: string | null
-  notes: string
-  driver_notified: boolean
-  created_at: string
-  updated_at: string
-}
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import type { Trip } from '../../types/domain'
 
 const getStatusColor = (status: Trip['status']) => {
   switch (status) {
@@ -92,10 +73,8 @@ export const TripManagement: React.FC = () => {
   const fetchTrips = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${API_BASE_URL}/trips/`, {
-        params: { company: user?.company_id },
-      })
-      setTrips(response.data.results || response.data)
+      const data = await get<Trip[]>('/trips/', { company: user?.company_id })
+      setTrips(data)
       setError('')
     } catch (err) {
       setError('Failed to fetch trips. Please try again.')
@@ -135,7 +114,7 @@ export const TripManagement: React.FC = () => {
     if (!tripToDelete) return
 
     try {
-      await axios.delete(`${API_BASE_URL}/trips/${tripToDelete.id}/`)
+      await del(`/trips/${tripToDelete.id}/`)
       await fetchTrips()
       onDeleteClose()
       setTripToDelete(null)
@@ -261,11 +240,13 @@ export const TripManagement: React.FC = () => {
         trip={selectedTrip}
       />
 
-      <DeleteConfirmModal
+      <ConfirmDialog
         isOpen={isDeleteOpen}
         onClose={onDeleteClose}
         onConfirm={handleDeleteConfirm}
-        tripName={tripToDelete ? tripToDelete.name : ''}
+        title="Delete Trip"
+        confirmLabel="Delete Trip"
+        nameHighlight={tripToDelete?.name ?? ''}
       />
 
       <TripDetailsDrawer

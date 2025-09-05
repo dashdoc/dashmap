@@ -1,6 +1,6 @@
 import React from 'react'
 import { Box, Text, VStack, HStack, Switch, FormLabel } from '@chakra-ui/react'
-import { MapControls } from '../../types/map'
+import type { MapControls } from '../../types/map'
 
 interface MapControlsProps {
   controls: MapControls

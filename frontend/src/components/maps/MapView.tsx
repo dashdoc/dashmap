@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { Box, Text, useDisclosure } from '@chakra-ui/react'
-import { useMapData } from '../../hooks/useMapData'
-import { useStopMarkers } from '../../hooks/useStopMarkers'
-import { useVehicleMarkers } from '../../hooks/useVehicleMarkers'
-import { useTripRoutes } from '../../hooks/useTripRoutes'
-import { useMapClickHandler } from '../../hooks/useMapClickHandler'
+import { useMapData } from './hooks/useMapData'
+import { useStopMarkers } from './hooks/useStopMarkers'
+import { useVehicleMarkers } from './hooks/useVehicleMarkers'
+import { useTripRoutes } from './hooks/useTripRoutes'
+import { useMapClickHandler } from './hooks/useMapClickHandler'
 import { useAuth } from '../../contexts/AuthContext'
 import type { MapControls, Trip } from '../../types/map'
-import { getMapCustomCSS } from '../../utils/mapStyles'
+import { getMapCustomCSS } from './utils/mapStyles'
 import MapControlsComponent from './MapControls'
 import { TripDetailsDrawer } from '../trips/TripDetailsDrawer'
+import { get } from '../../lib/api'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 const MapView: React.FC = () => {
@@ -37,22 +38,11 @@ const MapView: React.FC = () => {
     if (selectedTrip && token) {
       try {
         // Fetch the latest trip data
-        const response = await fetch(
-          `http://localhost:8000/api/trips/${selectedTrip.id}/`,
-          {
-            headers: {
-              Authorization: `Token ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-        if (response.ok) {
-          const updatedTrip = await response.json()
-          // Update the selected trip state
-          setSelectedTrip(updatedTrip)
-          // Refresh just this trip's route on the map
-          tripRoutes.refreshSelectedTrip(updatedTrip, controls.showTrips)
-        }
+        const updatedTrip = await get<Trip>(`/trips/${selectedTrip.id}/`)
+        // Update the selected trip state
+        setSelectedTrip(updatedTrip)
+        // Refresh just this trip's route on the map
+        tripRoutes.refreshSelectedTrip(updatedTrip, controls.showTrips)
       } catch (error) {
         console.error('Error fetching updated trip:', error)
       }

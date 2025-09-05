@@ -21,22 +21,9 @@ import {
 } from '@chakra-ui/react'
 import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons'
 import { StopForm } from './StopForm'
-import { DeleteConfirmModal } from './DeleteConfirmModal'
-import axios from 'axios'
-
-interface Stop {
-  id: number
-  name: string
-  address: string
-  stop_type: 'loading' | 'unloading'
-  contact_name: string
-  contact_phone: string
-  notes: string
-  created_at: string
-  updated_at: string
-}
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import { ConfirmDialog } from '../common/ConfirmDialog'
+import { get, post, del } from '../../lib/api'
+import type { Stop } from '../../types/domain'
 
 export const StopManagement: React.FC = () => {
   const [stops, setStops] = useState<Stop[]>([])
@@ -60,8 +47,8 @@ export const StopManagement: React.FC = () => {
   const fetchStops = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${API_BASE_URL}/stops/`)
-      setStops(response.data.results || response.data)
+      const data = await get<Stop[]>('/stops/')
+      setStops(data)
       setError('')
     } catch (err) {
       setError('Failed to fetch stops. Please try again.')
@@ -94,7 +81,7 @@ export const StopManagement: React.FC = () => {
     if (!stopToDelete) return
 
     try {
-      await axios.delete(`${API_BASE_URL}/stops/${stopToDelete.id}/`)
+      await del(`/stops/${stopToDelete.id}/`)
       await fetchStops()
       onDeleteClose()
       setStopToDelete(null)
@@ -114,13 +101,10 @@ export const StopManagement: React.FC = () => {
       setIsGettingOrders(true)
       setError('')
 
-      const response = await axios.post(`${API_BASE_URL}/stops/generate-fake/`)
-
-      if (response.status === 201) {
-        setError('')
-        // Refresh the stops list to show new orders
-        await fetchStops()
-      }
+      await post('/stops/generate-fake/')
+      setError('')
+      // Refresh the stops list to show new orders
+      await fetchStops()
     } catch (err) {
       console.error('Error getting orders:', err)
       setError('Failed to get orders. Please try again.')
@@ -255,11 +239,13 @@ export const StopManagement: React.FC = () => {
         stop={selectedStop}
       />
 
-      <DeleteConfirmModal
+      <ConfirmDialog
         isOpen={isDeleteOpen}
         onClose={onDeleteClose}
         onConfirm={handleDeleteConfirm}
-        stopName={stopToDelete ? stopToDelete.name : ''}
+        title="Delete Stop"
+        confirmLabel="Delete Stop"
+        nameHighlight={stopToDelete?.name ?? ''}
       />
     </Box>
   )

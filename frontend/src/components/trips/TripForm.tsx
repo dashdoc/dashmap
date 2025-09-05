@@ -18,35 +18,9 @@ import {
   Textarea,
   SimpleGrid,
 } from '@chakra-ui/react'
-import axios from 'axios'
+import { get, post, put } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
-
-interface Trip {
-  id: number
-  vehicle: number
-  vehicle_license_plate: string
-  dispatcher: number
-  dispatcher_name: string
-  name: string
-  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
-  planned_start_date: string
-  planned_start_time: string
-  actual_start_datetime?: string | null
-  actual_end_datetime?: string | null
-  notes: string
-  driver_notified: boolean
-  created_at: string
-  updated_at: string
-}
-
-interface Vehicle {
-  id: number
-  license_plate: string
-  make: string
-  model: string
-  driver_name: string
-  is_active: boolean
-}
+import type { Trip, Vehicle } from '../../types/domain'
 
 interface TripFormProps {
   isOpen: boolean
@@ -54,8 +28,6 @@ interface TripFormProps {
   onSuccess: () => void
   trip?: Trip | null
 }
-
-const API_BASE_URL = 'http://localhost:8000/api'
 
 export const TripForm: React.FC<TripFormProps> = ({
   isOpen,
@@ -81,10 +53,10 @@ export const TripForm: React.FC<TripFormProps> = ({
   const fetchVehicles = async () => {
     try {
       setLoadingVehicles(true)
-      const response = await axios.get(`${API_BASE_URL}/vehicles/`, {
-        params: { company: user?.company_id },
+      const data = await get<Vehicle[]>('/vehicles/', {
+        company: user?.company_id,
       })
-      const activeVehicles = (response.data.results || response.data).filter(
+      const activeVehicles = data.filter(
         (vehicle: Vehicle) => vehicle.is_active
       )
       setVehicles(activeVehicles)
@@ -150,9 +122,9 @@ export const TripForm: React.FC<TripFormProps> = ({
       }
 
       if (trip) {
-        await axios.put(`${API_BASE_URL}/trips/${trip.id}/`, tripData)
+        await put(`/trips/${trip.id}/`, tripData)
       } else {
-        await axios.post(`${API_BASE_URL}/trips/`, tripData)
+        await post('/trips/', tripData)
       }
 
       onSuccess()

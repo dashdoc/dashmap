@@ -17,19 +17,8 @@ import {
   Select,
   Textarea,
 } from '@chakra-ui/react'
-import axios from 'axios'
-
-interface Stop {
-  id: number
-  name: string
-  address: string
-  stop_type: 'loading' | 'unloading'
-  contact_name: string
-  contact_phone: string
-  notes: string
-  created_at: string
-  updated_at: string
-}
+import { post, put } from '../../lib/api'
+import type { Stop } from '../../types/domain'
 
 interface StopFormProps {
   isOpen: boolean
@@ -37,8 +26,6 @@ interface StopFormProps {
   onSuccess: () => void
   stop?: Stop | null
 }
-
-const API_BASE_URL = 'http://localhost:8000/api'
 
 export const StopForm: React.FC<StopFormProps> = ({
   isOpen,
@@ -100,9 +87,9 @@ export const StopForm: React.FC<StopFormProps> = ({
 
     try {
       if (stop) {
-        await axios.put(`${API_BASE_URL}/stops/${stop.id}/`, formData)
+        await put(`/stops/${stop.id}/`, formData)
       } else {
-        await axios.post(`${API_BASE_URL}/stops/`, formData)
+        await post('/stops/', formData)
       }
 
       onSuccess()

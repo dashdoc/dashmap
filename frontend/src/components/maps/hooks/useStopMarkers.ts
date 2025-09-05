@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
-import type { Stop } from '../types/map'
+import type { Stop } from '../../../types/map'
 import { createStopPopupContent } from '../utils/mapPopups'
 import { createStopMarkerElement } from '../utils/mapStyles'
 export const useStopMarkers = (

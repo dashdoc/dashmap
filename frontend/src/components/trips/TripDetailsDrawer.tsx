@@ -29,34 +29,10 @@ import {
   DragDropContext,
   Droppable,
   Draggable,
-  DropResult,
+  type DropResult,
 } from '@hello-pangea/dnd'
-import axios from 'axios'
-import { useAuth } from '../../contexts/AuthContext'
-
-interface Trip {
-  id: number
-  vehicle: number
-  vehicle_license_plate: string
-  name: string
-  status: 'draft' | 'planned' | 'in_progress' | 'completed' | 'cancelled'
-  planned_start_date: string
-  planned_start_time: string
-  notes: string
-}
-
-interface Stop {
-  id: number
-  name: string
-  stop_type: 'loading' | 'unloading'
-}
-
-interface TripStop {
-  id: number
-  stop: Stop
-  order: number
-  planned_arrival_time: string
-}
+import { get, put, post, del } from '../../lib/api'
+import type { Trip, Stop, TripStop } from '../../types/domain'
 
 interface TripDetailsDrawerProps {
   isOpen: boolean
@@ -66,8 +42,6 @@ interface TripDetailsDrawerProps {
   onTripStopsChanged?: () => void
 }
 
-const API_BASE_URL = 'http://localhost:8000/api'
-
 export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   isOpen,
   onClose,
@@ -75,7 +49,6 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   onTripUpdated,
   onTripStopsChanged,
 }) => {
-  const { token } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
     vehicle: '',
@@ -93,22 +66,10 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   const [isReordering, setIsReordering] = useState(false)
   const toast = useToast()
 
-  // Create axios config with auth headers
-  const axiosConfig = {
-    headers: {
-      ...(token && { Authorization: `Token ${token}` }),
-      'Content-Type': 'application/json',
-    },
-  }
-
   const fetchTripDetails = async () => {
     if (!trip) return
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/trips/${trip.id}/`,
-        axiosConfig
-      )
-      const data = response.data
+      const data = await get<Trip>(`/trips/${trip.id}/`)
       setFormData({
         name: data.name,
         vehicle: data.vehicle.toString(),
@@ -125,8 +86,8 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 
   const fetchStops = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/stops/`, axiosConfig)
-      setStops(response.data.results || response.data)
+      const data = await get<Stop[]>('/stops/')
+      setStops(data)
     } catch (err) {
       console.error('Error fetching stops:', err)
     }
@@ -156,14 +117,10 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     setIsSaving(true)
     setError('')
     try {
-      await axios.put(
-        `${API_BASE_URL}/trips/${trip.id}/`,
-        {
-          ...formData,
-          vehicle: parseInt(formData.vehicle),
-        },
-        axiosConfig
-      )
+      await put(`/trips/${trip.id}/`, {
+        ...formData,
+        vehicle: parseInt(formData.vehicle),
+      })
       onTripUpdated()
       onClose()
     } catch (err) {
@@ -181,16 +138,12 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     setIsAdding(true)
     setError('')
     try {
-      await axios.post(
-        `${API_BASE_URL}/trip-stops/`,
-        {
-          trip: trip.id,
-          stop: parseInt(newStop.stopId),
-          order: tripStops.length + 1,
-          planned_arrival_time: newStop.time,
-        },
-        axiosConfig
-      )
+      await post('/trip-stops/', {
+        trip: trip.id,
+        stop: parseInt(newStop.stopId),
+        order: tripStops.length + 1,
+        planned_arrival_time: newStop.time,
+      })
       await fetchTripDetails()
       setNewStop({ stopId: '', time: '' })
       // Notify the map to redraw the trip route
@@ -207,7 +160,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 
   const handleDeleteStop = async (id: number) => {
     try {
-      await axios.delete(`${API_BASE_URL}/trip-stops/${id}/`, axiosConfig)
+      await del(`/trip-stops/${id}/`)
       await fetchTripDetails()
       toast({
         title: 'Stop removed',
@@ -252,13 +205,9 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       }))
 
       // Call the reorder API
-      await axios.post(
-        `${API_BASE_URL}/trips/${trip.id}/reorder-stops/`,
-        {
-          orders,
-        },
-        axiosConfig
-      )
+      await post(`/trips/${trip.id}/reorder-stops/`, {
+        orders,
+      })
 
       // Refresh trip details to ensure we have the latest data
       await fetchTripDetails()

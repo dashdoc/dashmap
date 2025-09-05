@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
-import mapboxgl from 'mapbox-gl'
+import type { Map } from 'mapbox-gl'
 
 export const useMapClickHandler = (
-  map: React.MutableRefObject<mapboxgl.Map | null>,
+  map: React.MutableRefObject<Map | null>,
   closeAllPopups: () => void
 ) => {
   const setupMapClickHandler = useCallback(() => {

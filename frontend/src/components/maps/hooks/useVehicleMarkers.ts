@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
-import type { VehiclePosition } from '../types/map'
+import type { VehiclePosition } from '../../../types/map'
 import { createVehiclePopupContent } from '../utils/mapPopups'
 import { createVehicleArrowElement } from '../utils/mapStyles'
 export const useVehicleMarkers = (

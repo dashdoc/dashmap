@@ -5,17 +5,9 @@ import React, {
   useEffect,
   type ReactNode,
 } from 'react'
+import type { User } from '../types/domain'
+import { get, post } from '../lib/api'
 import axios from 'axios'
-
-interface User {
-  id: number
-  username: string
-  email: string
-  first_name: string
-  last_name: string
-  company_id: number
-  company_name: string
-}
 
 interface AuthContextType {
   user: User | null
@@ -40,8 +32,6 @@ interface SignupData {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-const API_BASE_URL = 'http://localhost:8000/api'
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -68,10 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         // Then try to refresh user data from server
         try {
-          const response = await axios.get(`${API_BASE_URL}/auth/profile/`)
-          const userData: User = response.data
-          setUser(userData)
-          localStorage.setItem('user', JSON.stringify(userData))
+          const userData = await get<User>('/auth/profile/')
+          const profileData: User = userData
+          setUser(profileData)
+          localStorage.setItem('user', JSON.stringify(profileData))
         } catch (error) {
           const err = error as { response?: { status?: number } }
           console.error('Failed to fetch user profile:', error)
@@ -95,16 +85,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = async (username: string, password: string) => {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/auth/login/`,
-        {
-          username,
-          password,
-        },
-        {
-          headers: {},
-        }
-      )
+      const loginData: {
+        token: string
+        user_id: number
+        username: string
+        email: string
+        first_name: string
+        last_name: string
+        company_id: number
+        company_name: string
+      } = await post('/auth/login/', {
+        username,
+        password,
+      })
 
       const {
         token: newToken,
@@ -115,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         last_name,
         company_id,
         company_name,
-      } = response.data
+      } = loginData
 
       const userData: User = {
         id: user_id,
@@ -132,8 +125,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       localStorage.setItem('token', newToken)
       localStorage.setItem('user', JSON.stringify(userData))
-
-      axios.defaults.headers.common['Authorization'] = `Token ${newToken}`
     } catch (error) {
       console.error('Login failed:', error)
       throw error
@@ -143,13 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const logout = async () => {
     try {
       if (token) {
-        await axios.post(
-          `${API_BASE_URL}/auth/logout/`,
-          {},
-          {
-            headers: { Authorization: `Token ${token}` },
-          }
-        )
+        await post('/auth/logout/', {})
       }
     } catch (error) {
       console.error('Logout error:', error)
@@ -158,29 +143,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setUser(null)
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      delete axios.defaults.headers.common['Authorization']
     }
   }
 
   const signup = async (userData: SignupData) => {
     try {
-      await axios.post(
-        `${API_BASE_URL}/auth/register/`,
-        {
-          username: userData.username,
-          password: userData.password,
-          email: userData.email,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          company_name: userData.company_name,
-          company_address: userData.company_address,
-          company_phone: userData.company_phone,
-          company_email: userData.company_email,
-        },
-        {
-          headers: {},
-        }
-      )
+      await post('/auth/register/', {
+        username: userData.username,
+        password: userData.password,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        company_name: userData.company_name,
+        company_address: userData.company_address,
+        company_phone: userData.company_phone,
+        company_email: userData.company_email,
+      })
 
       await login(userData.username, userData.password)
     } catch (error) {

@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
-import type { Trip } from '../types/map'
+import type { Trip } from '../../../types/map'
 import { createTripPopupContent } from '../utils/mapPopups'
 import { getStatusColor } from '../utils/mapStyles'
 export const useTripRoutes = (

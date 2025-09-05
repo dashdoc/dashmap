@@ -21,28 +21,10 @@ import {
 } from '@chakra-ui/react'
 import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons'
 import { VehicleForm } from './VehicleForm'
-import { DeleteConfirmModal } from './DeleteConfirmModal'
-import axios from 'axios'
+import { ConfirmDialog } from '../common/ConfirmDialog'
+import { get, del } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
-
-interface Vehicle {
-  id: number
-  company: number
-  company_name: string
-  license_plate: string
-  make: string
-  model: string
-  year: number
-  capacity: string
-  driver_name: string
-  driver_email: string
-  driver_phone: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import type { Vehicle } from '../../types/domain'
 
 export const VehicleManagement: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -67,10 +49,10 @@ export const VehicleManagement: React.FC = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${API_BASE_URL}/vehicles/`, {
-        params: { company: user?.company_id },
+      const data = await get<Vehicle[]>('/vehicles/', {
+        company: user?.company_id,
       })
-      setVehicles(response.data.results || response.data)
+      setVehicles(data)
       setError('')
     } catch (err) {
       setError('Failed to fetch vehicles. Please try again.')
@@ -105,7 +87,7 @@ export const VehicleManagement: React.FC = () => {
     if (!vehicleToDelete) return
 
     try {
-      await axios.delete(`${API_BASE_URL}/vehicles/${vehicleToDelete.id}/`)
+      await del(`/vehicles/${vehicleToDelete.id}/`)
       await fetchVehicles()
       onDeleteClose()
       setVehicleToDelete(null)
@@ -220,11 +202,13 @@ export const VehicleManagement: React.FC = () => {
         vehicle={selectedVehicle}
       />
 
-      <DeleteConfirmModal
+      <ConfirmDialog
         isOpen={isDeleteOpen}
         onClose={onDeleteClose}
         onConfirm={handleDeleteConfirm}
-        vehicleName={
+        title="Delete Vehicle"
+        confirmLabel="Delete Vehicle"
+        nameHighlight={
           vehicleToDelete
             ? `${vehicleToDelete.license_plate} - ${vehicleToDelete.make} ${vehicleToDelete.model}`
             : ''

@@ -15,9 +15,8 @@ import {
   SimpleGrid,
 } from '@chakra-ui/react'
 import { useAuth } from '../../contexts/AuthContext'
-import axios from 'axios'
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import { put } from '../../lib/api'
+import type { User, Company } from '../../types/domain'
 
 export const Settings: React.FC = () => {
   const { user, updateUser } = useAuth()
@@ -66,19 +65,10 @@ export const Settings: React.FC = () => {
     setUserSuccess('')
 
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/auth/profile/`,
-        userSettings,
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const userData: User = await put('/auth/profile/', userSettings)
 
       // Update user context with new user data
-      updateUser(response.data)
+      updateUser(userData)
 
       setUserSuccess('User settings updated successfully!')
     } catch (err) {
@@ -99,22 +89,13 @@ export const Settings: React.FC = () => {
     setCompanySuccess('')
 
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/auth/company/`,
-        companySettings,
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const companyData: Company = await put('/auth/company/', companySettings)
 
       // Update user context with new company name
       if (user) {
         const updatedUser = {
           ...user,
-          company_name: response.data.name,
+          company_name: companyData.name,
         }
         updateUser(updatedUser)
       }

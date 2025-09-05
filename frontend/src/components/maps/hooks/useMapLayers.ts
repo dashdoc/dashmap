@@ -1,6 +1,6 @@
 import { useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
-import { Stop, Trip, VehiclePosition } from '../types/map'
+import type { Stop, Trip, VehiclePosition } from '../../../types/map'
 import {
   createStopPopupContent,
   createTripPopupContent,

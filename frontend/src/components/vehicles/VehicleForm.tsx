@@ -18,25 +18,9 @@ import {
   Switch,
   FormHelperText,
 } from '@chakra-ui/react'
-import axios from 'axios'
+import { post, put } from '../../lib/api'
 import { useAuth } from '../../contexts/AuthContext'
-
-interface Vehicle {
-  id: number
-  company: number
-  company_name: string
-  license_plate: string
-  make: string
-  model: string
-  year: number
-  capacity: string
-  driver_name: string
-  driver_email: string
-  driver_phone: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
+import type { Vehicle } from '../../types/domain'
 
 interface VehicleFormProps {
   isOpen: boolean
@@ -44,8 +28,6 @@ interface VehicleFormProps {
   onSuccess: () => void
   vehicle?: Vehicle | null
 }
-
-const API_BASE_URL = 'http://localhost:8000/api'
 
 export const VehicleForm: React.FC<VehicleFormProps> = ({
   isOpen,
@@ -124,9 +106,9 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
       }
 
       if (vehicle) {
-        await axios.put(`${API_BASE_URL}/vehicles/${vehicle.id}/`, vehicleData)
+        await put(`/vehicles/${vehicle.id}/`, vehicleData)
       } else {
-        await axios.post(`${API_BASE_URL}/vehicles/`, vehicleData)
+        await post('/vehicles/', vehicleData)
       }
 
       onSuccess()
