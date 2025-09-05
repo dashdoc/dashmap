@@ -47,6 +47,27 @@ export interface Stop {
   notes: string
 }
 
+export interface Order {
+  id: number
+  order_number: string
+  customer_name: string
+  customer_company: string
+  customer_email: string
+  customer_phone: string
+  pickup_stop: Stop
+  delivery_stop: Stop
+  goods_description: string
+  goods_weight: string | null
+  goods_volume: string | null
+  goods_type: 'standard' | 'fragile' | 'hazmat' | 'refrigerated' | 'oversized'
+  special_instructions: string
+  status: 'pending' | 'assigned' | 'in_transit' | 'delivered' | 'cancelled'
+  requested_pickup_date: string | null
+  requested_delivery_date: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface TripStop {
   id: number
   stop: Stop

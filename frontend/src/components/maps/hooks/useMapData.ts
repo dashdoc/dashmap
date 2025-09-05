@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Stop, Trip, VehiclePosition } from '../../../types/map'
+import type { Trip, VehiclePosition } from '../../../types/map'
+import type { Order } from '../../../types/domain'
 import { useAuth } from '../../../contexts/AuthContext'
 import { get } from '../../../lib/api'
 
 export const useMapData = () => {
-  const [stops, setStops] = useState<Stop[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [trips, setTrips] = useState<Trip[]>([])
   const [vehiclePositions, setVehiclePositions] = useState<VehiclePosition[]>(
     []
@@ -14,17 +15,15 @@ export const useMapData = () => {
 
   const { token } = useAuth()
 
-  const fetchStops = useCallback(async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
-      const stops = await get<Stop[]>('/stops/')
-      const stopsWithCoords = stops.filter(
-        (stop: Stop) => stop.latitude && stop.longitude
-      )
-      setStops(stopsWithCoords)
+      const orders = await get<Order[]>('/orders/')
+      setOrders(orders)
+      setError('')
     } catch (error) {
-      console.error('Error fetching stops:', error)
-      setError('Failed to load stops')
+      console.error('Error fetching orders:', error)
+      setError('Failed to load orders')
     } finally {
       setLoading(false)
     }
@@ -50,19 +49,19 @@ export const useMapData = () => {
 
   useEffect(() => {
     if (token) {
-      fetchStops()
+      fetchOrders()
       fetchTrips()
       fetchVehiclePositions()
     }
-  }, [token, fetchStops, fetchTrips, fetchVehiclePositions])
+  }, [token, fetchOrders, fetchTrips, fetchVehiclePositions])
 
   return {
-    stops,
+    orders,
     trips,
     vehiclePositions,
     loading,
     error,
-    refetchStops: fetchStops,
+    refetchOrders: fetchOrders,
     refetchTrips: fetchTrips,
     refetchVehiclePositions: fetchVehiclePositions,
   }

@@ -19,7 +19,7 @@ export interface VehiclePosition {
 }
 
 export interface MapControls {
-  showStops: boolean
+  showOrders: boolean
   showVehicles: boolean
   showTrips: boolean
 }

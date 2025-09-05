@@ -28,13 +28,13 @@ const MapControlsComponent: React.FC<MapControlsProps> = ({
       </Text>
       <VStack spacing={3} align="stretch">
         <HStack justify="space-between">
-          <FormLabel htmlFor="stops-toggle" mb={0} fontSize="sm">
-            Stops
+          <FormLabel htmlFor="orders-toggle" mb={0} fontSize="sm">
+            Orders
           </FormLabel>
           <Switch
-            id="stops-toggle"
-            isChecked={controls.showStops}
-            onChange={(e) => onControlChange('showStops', e.target.checked)}
+            id="orders-toggle"
+            isChecked={controls.showOrders}
+            onChange={(e) => onControlChange('showOrders', e.target.checked)}
             colorScheme="blue"
           />
         </HStack>

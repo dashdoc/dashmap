@@ -8,7 +8,7 @@ import {
   Spacer,
   VStack,
 } from '@chakra-ui/react'
-import { Map, Route, Truck, MapPin, Settings } from 'lucide-react'
+import { Map, Route, Truck, Package, Settings } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -23,9 +23,9 @@ export const Sidebar: React.FC = () => {
 
   const tabs = [
     { name: 'Map', path: '/map', icon: Map },
+    { name: 'Orders', path: '/orders', icon: Package },
     { name: 'Trips', path: '/trips', icon: Route },
     { name: 'Vehicles', path: '/vehicles', icon: Truck },
-    { name: 'Stops', path: '/stops', icon: MapPin },
     { name: 'Settings', path: '/settings', icon: Settings },
   ]
 

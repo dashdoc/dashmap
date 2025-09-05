@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 import random
 from companies.models import Company
 from vehicles.models import Vehicle
-from trips.models import Stop, Trip, TripStop
+from trips.models import Trip, TripStop
+from orders.models import Stop, Order
 from positions.models import Position
 from accounts.models import AuthToken, UserProfile
 
@@ -226,6 +227,99 @@ class Command(BaseCommand):
 
         self.stdout.write(f'Created {len(stops)} test stops')
 
+        # Create test orders
+        self.stdout.write('Creating test orders...')
+        loading_stops = [s for s in stops if s.stop_type == 'loading']
+        unloading_stops = [s for s in stops if s.stop_type == 'unloading']
+
+        orders_data = [
+            {
+                'customer_name': 'ACME Manufacturing',
+                'customer_company': 'ACME Corp',
+                'customer_email': 'logistics@acme.com',
+                'customer_phone': '+33-1-42-00-1234',
+                'pickup_stop': loading_stops[0],  # Rungis
+                'delivery_stop': unloading_stops[0],  # Carrefour Paris
+                'goods_description': 'Fresh produce and dairy products',
+                'goods_weight': 2500.0,
+                'goods_volume': 15.0,
+                'goods_type': 'refrigerated',
+                'special_instructions': 'Keep temperature at 2-4°C throughout transport'
+            },
+            {
+                'customer_name': 'TechCorp Europe',
+                'customer_company': 'TechCorp Ltd',
+                'customer_email': 'supply@techcorp.eu',
+                'customer_phone': '+33-1-45-67-8900',
+                'pickup_stop': loading_stops[4],  # Toulouse Aerospace
+                'delivery_stop': unloading_stops[7],  # Frankfurt
+                'goods_description': 'Aerospace electronic components',
+                'goods_weight': 850.0,
+                'goods_volume': 5.2,
+                'goods_type': 'fragile',
+                'special_instructions': 'Handle with extreme care - sensitive electronics'
+            },
+            {
+                'customer_name': 'EuroConstruction',
+                'customer_company': 'EuroConstruction SA',
+                'customer_email': 'orders@euroconstruct.fr',
+                'customer_phone': '+33-4-78-90-1234',
+                'pickup_stop': loading_stops[8],  # Saint-Gobain Melun
+                'delivery_stop': unloading_stops[4],  # Brussels
+                'goods_description': 'Construction materials and tools',
+                'goods_weight': 4200.0,
+                'goods_volume': 28.0,
+                'goods_type': 'standard',
+                'special_instructions': 'Delivery to construction site - crane available'
+            },
+            {
+                'customer_name': 'PharmaLogistics',
+                'customer_company': 'PharmaDistrib',
+                'customer_email': 'urgent@pharmadistrib.com',
+                'customer_phone': '+33-1-56-78-9012',
+                'pickup_stop': loading_stops[9],  # Sanofi
+                'delivery_stop': unloading_stops[8],  # Milan
+                'goods_description': 'Pharmaceutical supplies and medications',
+                'goods_weight': 320.0,
+                'goods_volume': 2.8,
+                'goods_type': 'hazmat',
+                'special_instructions': 'Requires temperature monitoring and hazmat certification'
+            },
+            {
+                'customer_name': 'Luxury Retail Chain',
+                'customer_company': 'EliteStores International',
+                'customer_email': 'procurement@elitestores.com',
+                'customer_phone': '+33-1-44-55-6677',
+                'pickup_stop': loading_stops[10],  # LVMH Logistics
+                'delivery_stop': unloading_stops[10],  # Zurich
+                'goods_description': 'Luxury fashion and accessories',
+                'goods_weight': 180.0,
+                'goods_volume': 8.5,
+                'goods_type': 'fragile',
+                'special_instructions': 'High-value goods - requires secure transport and signature on delivery'
+            }
+        ]
+
+        orders = []
+        for o_data in orders_data:
+            order = Order.objects.create(
+                customer_name=o_data['customer_name'],
+                customer_company=o_data['customer_company'],
+                customer_email=o_data['customer_email'],
+                customer_phone=o_data['customer_phone'],
+                pickup_stop=o_data['pickup_stop'],
+                delivery_stop=o_data['delivery_stop'],
+                goods_description=o_data['goods_description'],
+                goods_weight=o_data['goods_weight'],
+                goods_volume=o_data['goods_volume'],
+                goods_type=o_data['goods_type'],
+                special_instructions=o_data['special_instructions'],
+                status='pending'
+            )
+            orders.append(order)
+
+        self.stdout.write(f'Created {len(orders)} test orders')
+
         # Create test trips
         self.stdout.write('Creating test trips...')
         today = timezone.now().date()
@@ -398,12 +492,12 @@ class Command(BaseCommand):
         self.stdout.write(f'Auth Token: {token.key}')
         self.stdout.write(f'Companies: {Company.objects.count()}')
         self.stdout.write(f'Vehicles: {Vehicle.objects.count()}')
-        self.stdout.write(f'Stops: {Stop.objects.count()}')
+        self.stdout.write(f'Orders: {Order.objects.count()}')
         self.stdout.write(f'Trips: {Trip.objects.count()}')
         self.stdout.write(f'Positions: {Position.objects.count()}')
         self.stdout.write('\nTest data includes:')
         self.stdout.write('• Dashmove company with 20 heavy trucks (18-40 tons capacity)')
-        self.stdout.write('• 62 European stops (ports, warehouses, factories) across France and neighboring countries')
+        self.stdout.write('• 5 sample orders with customer details, pickup/delivery locations, and goods information')
         self.stdout.write('• 10 sample trips with different statuses')
         self.stdout.write('• 48 hours of position data for 10 vehicles across European routes')
         self.stdout.write('• Realistic heavy truck logistics operations')

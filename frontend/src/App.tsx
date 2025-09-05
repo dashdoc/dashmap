@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { AuthPage } from './components/auth/AuthPage'
 import { Layout } from './components/layout/Layout'
 import { VehicleManagement } from './components/vehicles/VehicleManagement'
-import { StopManagement } from './components/stops/StopManagement'
+import { OrderManagement } from './components/orders/OrderManagement'
 import { TripManagement } from './components/trips/TripManagement'
 import { Settings } from './components/settings/Settings'
 import MapView from './components/maps/MapView'
@@ -53,10 +53,10 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/stops"
+        path="/orders"
         element={
           <Layout>
-            <StopManagement />
+            <OrderManagement />
           </Layout>
         }
       />

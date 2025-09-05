@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { Box, Text, useDisclosure } from '@chakra-ui/react'
 import { useMapData } from './hooks/useMapData'
-import { useStopMarkers } from './hooks/useStopMarkers'
+import { useOrderMarkers } from './hooks/useOrderMarkers'
 import { useVehicleMarkers } from './hooks/useVehicleMarkers'
 import { useTripRoutes } from './hooks/useTripRoutes'
 import { useMapClickHandler } from './hooks/useMapClickHandler'
@@ -23,7 +23,7 @@ const MapView: React.FC = () => {
   const { token } = useAuth()
 
   // Custom hooks for data and layer management
-  const { stops, trips, vehiclePositions, loading, error, refetchTrips } =
+  const { orders, trips, vehiclePositions, loading, error, refetchTrips } =
     useMapData()
 
   const [shouldRefreshTrips, setShouldRefreshTrips] = useState(false)
@@ -54,7 +54,7 @@ const MapView: React.FC = () => {
   }
 
   // Initialize focused hooks
-  const stopMarkers = useStopMarkers(map)
+  const orderMarkers = useOrderMarkers(map)
   const vehicleMarkers = useVehicleMarkers(map)
   const tripRoutes = useTripRoutes(map, (trip: Trip) => {
     setSelectedTrip(trip)
@@ -79,7 +79,7 @@ const MapView: React.FC = () => {
 
   // Control states for map layers
   const [controls, setControls] = useState<MapControls>({
-    showStops: true,
+    showOrders: true,
     showVehicles: true,
     showTrips: true,
   })
@@ -101,8 +101,8 @@ const MapView: React.FC = () => {
   const handleControlChange = (control: keyof MapControls, value: boolean) => {
     setControls((prev) => ({ ...prev, [control]: value }))
 
-    if (control === 'showStops') {
-      stopMarkers.toggleVisibility(value)
+    if (control === 'showOrders') {
+      orderMarkers.toggleVisibility(value)
     } else if (control === 'showTrips') {
       tripRoutes.toggleVisibility(value)
     } else if (control === 'showVehicles') {
@@ -179,20 +179,26 @@ const MapView: React.FC = () => {
 
   // Add layers when both map is ready and data is available
   useEffect(() => {
-    if (!mapReady || !map.current || stops.length === 0) return
+    if (!mapReady || !map.current) return
 
-    stopMarkers.addMarkersToMap(stops, controls.showStops)
-    tripRoutes.addTripsToMap(trips, controls.showTrips)
-    vehicleMarkers.addVehiclesToMap(vehiclePositions, controls.showVehicles)
+    if (orders.length > 0) {
+      orderMarkers.addMarkersToMap(orders, controls.showOrders)
+    }
+    if (trips.length > 0) {
+      tripRoutes.addTripsToMap(trips, controls.showTrips)
+    }
+    if (vehiclePositions.length > 0) {
+      vehicleMarkers.addVehiclesToMap(vehiclePositions, controls.showVehicles)
+    }
   }, [
     mapReady,
-    stops,
+    orders,
     trips,
     vehiclePositions,
-    stopMarkers,
+    orderMarkers,
     tripRoutes,
     vehicleMarkers,
-    controls.showStops,
+    controls.showOrders,
     controls.showTrips,
     controls.showVehicles,
   ])

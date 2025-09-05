@@ -1,26 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from vehicles.models import Vehicle
-
-class Stop(models.Model):
-    STOP_TYPES = [
-        ('loading', 'Loading'),
-        ('unloading', 'Unloading'),
-    ]
-
-    name = models.CharField(max_length=200)
-    address = models.TextField()
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    stop_type = models.CharField(max_length=10, choices=STOP_TYPES)
-    contact_name = models.CharField(max_length=100, blank=True)
-    contact_phone = models.CharField(max_length=20, blank=True)
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.name} ({self.stop_type})"
+from orders.models import Stop
 
 class Trip(models.Model):
     STATUS_CHOICES = [

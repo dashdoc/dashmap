@@ -196,72 +196,71 @@ All list endpoints return data in this format:
 }
 ```
 
-## Stops
+## Orders
 
-### List/Create Stops
-- **GET** `/api/stops/` - List all stops
-- **POST** `/api/stops/` - Create new stop
+### List/Create Orders
+- **GET** `/api/orders/` - List all orders
+- **POST** `/api/orders/` - Create new order
 
-### Stop Details
-- **GET** `/api/stops/{id}/` - Get stop details
-- **PUT** `/api/stops/{id}/` - Update stop
-- **DELETE** `/api/stops/{id}/` - Delete stop
+### Order Details
+- **GET** `/api/orders/{id}/` - Get order details
+- **PUT** `/api/orders/{id}/` - Update order
+- **DELETE** `/api/orders/{id}/` - Delete order
 
-**Stop Object:**
+### Generate Fake Orders
+- **POST** `/api/orders/generate-fake/` - Generate random test orders
+
+**Order Object:**
 ```json
 {
   "id": 1,
-  "name": "Loading Dock A",
-  "address": "100 Warehouse St",
-  "latitude": "41.878113",
-  "longitude": "-87.629799",
-  "stop_type": "loading",
-  "contact_name": "Dock Manager",
-  "contact_phone": "555-0001",
-  "notes": "Use rear entrance",
+  "order_number": "ORD-2024-0001",
+  "customer_name": "John Smith",
+  "customer_company": "ACME Manufacturing",
+  "customer_email": "john.smith@acme.com",
+  "customer_phone": "+33-1-42-00-1234",
+  "pickup_stop": {
+    "id": 1,
+    "name": "Rungis International Market",
+    "address": "1 Rue de la Tour, 94150 Rungis, France",
+    "latitude": "48.759000",
+    "longitude": "2.352000",
+    "stop_type": "loading"
+  },
+  "delivery_stop": {
+    "id": 15,
+    "name": "Carrefour Distribution Paris",
+    "address": "93 Avenue de Paris, 94300 Vincennes, France",
+    "latitude": "48.847000",
+    "longitude": "2.428000",
+    "stop_type": "unloading"
+  },
+  "goods_description": "Fresh produce and dairy products",
+  "goods_weight": "2500.00",
+  "goods_volume": "15.00",
+  "goods_type": "refrigerated",
+  "special_instructions": "Keep temperature at 2-4°C throughout transport",
+  "status": "pending",
+  "requested_pickup_date": "2024-01-20",
+  "requested_delivery_date": "2024-01-21",
   "created_at": "2024-01-15T08:00:00Z",
   "updated_at": "2024-01-15T08:00:00Z"
 }
 ```
 
-**Stop Types:** `"loading"` or `"unloading"`
+**Order Status Options:**
+- `"pending"` - Order created, awaiting assignment
+- `"assigned"` - Order assigned to a trip
+- `"in_transit"` - Order currently being transported
+- `"delivered"` - Order completed successfully
+- `"cancelled"` - Order cancelled
 
-**Coordinates:**
-- `latitude` and `longitude` fields are optional decimal values
-- When creating stops, coordinates can be provided or omitted (will be `null`)
-- The fake stop generator automatically creates realistic coordinates
-
-### Generate Fake Stops
-- **POST** `/api/stops/generate-fake/` - Generate 3-8 random stops with faker data
-
-**Response:**
-```json
-{
-  "message": "Successfully created 5 new orders",
-  "created_stops": [
-    {
-      "id": 10,
-      "name": "Warehouse C",
-      "address": "789 Industrial Blvd, Springfield, IL 62701",
-      "latitude": "39.781721",
-      "longitude": "-89.650148",
-      "stop_type": "loading",
-      "contact_name": "Mike Johnson",
-      "contact_phone": "555-0123",
-      "notes": "Use loading bay 3",
-      "created_at": "2024-01-15T10:30:00Z",
-      "updated_at": "2024-01-15T10:30:00Z"
-    }
-  ]
-}
-```
-
-This endpoint simulates incoming orders by creating random stops with realistic data including:
-- Warehouse/distribution centers for loading stops
-- Customer sites/stores for unloading stops
-- Realistic addresses with city, state, zip
-- Contact names and phone numbers
-- Optional notes
+**Goods Types:**
+- `"standard"` - Standard cargo
+- `"fragile"` - Fragile items requiring careful handling
+- `"hazmat"` - Hazardous materials requiring special permits
+- `"refrigerated"` - Temperature-controlled goods
+- `"oversized"` - Oversized cargo requiring special equipment
 
 ## Trips
 
@@ -493,12 +492,13 @@ All trip stop IDs in the request must belong to the specified trip. The response
 1. **Login:** POST `/api/auth/login/` (get token)
 2. **Create Company:** POST `/api/companies/` (with token)
 3. **Create Vehicle:** POST `/api/vehicles/` (with company ID and token)
-4. **Create Stops:** POST `/api/stops/` (for loading/unloading locations)
+4. **Create Orders:** POST `/api/orders/` (customers with pickup/delivery locations)
 5. **Create Trip:** POST `/api/trips/` (with vehicle and dispatcher)
 6. **Add Stops to Trip:** POST `/api/trip-stops/` (with trip, stop, and order)
 7. **Notify Driver:** POST `/api/trips/{id}/notify-driver/`
 8. **Update Trip Status:** PUT `/api/trips/{id}/` (change status to "planned")
-9. **Logout:** POST `/api/auth/logout/` (invalidate token)
+9. **Update Order Status:** PUT `/api/orders/{id}/` (track order progress)
+10. **Logout:** POST `/api/auth/logout/` (invalidate token)
 
 ## Positions (Telematics Data)
 

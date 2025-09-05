@@ -18,7 +18,7 @@ export const Layout: React.FC<LayoutProps> = ({
       <Sidebar />
 
       {/* Main content */}
-      <Box flex={1} bg={bgColor} p={isFullScreen ? 0 : 6}>
+      <Box flex={1} bg={bgColor} p={isFullScreen ? 0 : 6} overflow="hidden">
         {children}
       </Box>
     </Flex>
