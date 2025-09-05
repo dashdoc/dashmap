@@ -543,9 +543,13 @@ class TripStopReorderView(View):
         """Reorder trip stops for a given trip"""
         try:
             from django.db import transaction
+            import logging
+            logger = logging.getLogger(__name__)
 
             data = json.loads(request.body)
             new_orders = data.get('orders', [])  # Expected format: [{'id': stop_id, 'order': new_order}, ...]
+
+            logger.info(f"Reordering stops for trip {trip_pk}: {new_orders}")
 
             if not new_orders:
                 return JsonResponse({'error': 'No orders provided'}, status=400)
@@ -567,7 +571,14 @@ class TripStopReorderView(View):
                 if len(existing_stops) != len(provided_stop_ids):
                     return JsonResponse({'error': 'Some trip stops do not belong to this trip'}, status=400)
 
-                # Update the orders
+                # First, set all orders to very high values to avoid constraint conflicts
+                # Use values starting from 10000 to avoid conflicts with existing orders
+                for i, order_item in enumerate(new_orders):
+                    trip_stop = TripStop.objects.get(id=order_item['id'], trip=trip)
+                    trip_stop.order = 10000 + i  # Use high values temporarily
+                    trip_stop.save()
+
+                # Then set the final order values
                 for order_item in new_orders:
                     trip_stop = TripStop.objects.get(id=order_item['id'], trip=trip)
                     trip_stop.order = order_item['order']
