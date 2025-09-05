@@ -28,42 +28,42 @@ export const useTripRoutes = (
     }
   }, [map])
 
-  const createPopup = useCallback((content: string) => {
-    const popup = new mapboxgl.Popup({
-      offset: 25,
-      closeButton: true,
-      closeOnClick: false,
-      className: 'custom-popup',
-    }).setHTML(content)
+  const createPopup = useCallback(
+    (content: string) => {
+      const popup = new mapboxgl.Popup({
+        offset: 25,
+        closeButton: true,
+        closeOnClick: false,
+        className: 'custom-popup',
+      }).setHTML(content)
 
-    popup.on('open', () => {
-      // Remove this popup from activePopups if it exists, then close others
-      activePopups.current = activePopups.current.filter((p) => p !== popup)
-      closeAllPopups()
-      activePopups.current.push(popup)
-    })
+      popup.on('open', () => {
+        // Remove this popup from activePopups if it exists, then close others
+        activePopups.current = activePopups.current.filter((p) => p !== popup)
+        closeAllPopups()
+        activePopups.current.push(popup)
+      })
 
-    popup.on('close', () => {
-      activePopups.current = activePopups.current.filter((p) => p !== popup)
-    })
+      popup.on('close', () => {
+        activePopups.current = activePopups.current.filter((p) => p !== popup)
+      })
 
-    return popup
-  }, [closeAllPopups])
+      return popup
+    },
+    [closeAllPopups]
+  )
 
   const loadChevronImages = useCallback(() => {
     if (!map.current) return
 
     // Load chevron pattern images if they don't exist
     if (!map.current.hasImage('trip-chevron')) {
-      map.current.loadImage(
-        '/src/assets/trip-chevron.png',
-        (error, image) => {
-          if (error) throw error
-          if (image && !map.current!.hasImage('trip-chevron')) {
-            map.current!.addImage('trip-chevron', image, { sdf: false })
-          }
+      map.current.loadImage('/src/assets/trip-chevron.png', (error, image) => {
+        if (error) throw error
+        if (image && !map.current!.hasImage('trip-chevron')) {
+          map.current!.addImage('trip-chevron', image, { sdf: false })
         }
-      )
+      })
     }
 
     if (!map.current.hasImage('trip-chevron-selected')) {
@@ -359,6 +359,6 @@ export const useTripRoutes = (
     resetSelectedTrip,
     forceRefreshTrips,
     refreshSelectedTrip,
-    closeAllPopups
+    closeAllPopups,
   }
 }

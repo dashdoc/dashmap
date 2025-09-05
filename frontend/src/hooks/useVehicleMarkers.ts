@@ -96,6 +96,6 @@ export const useVehicleMarkers = (
   return {
     addVehiclesToMap,
     toggleVisibility,
-    clearMarkers
+    clearMarkers,
   }
 }

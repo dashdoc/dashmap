@@ -24,6 +24,6 @@ export const useMapClickHandler = (
   }, [map, closeAllPopups])
 
   return {
-    setupMapClickHandler
+    setupMapClickHandler,
   }
 }

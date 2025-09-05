@@ -76,20 +76,6 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   onTripStopsChanged,
 }) => {
   const { token } = useAuth()
-
-  // Create axios config with auth headers
-  const axiosConfig = {
-    headers: {
-      Authorization: `Token ${token}`,
-      'Content-Type': 'application/json',
-    },
-  }
-
-  // Don't render the component if there's no token
-  if (!token) {
-    return null
-  }
-
   const [formData, setFormData] = useState({
     name: '',
     vehicle: '',
@@ -107,10 +93,21 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   const [isReordering, setIsReordering] = useState(false)
   const toast = useToast()
 
+  // Create axios config with auth headers
+  const axiosConfig = {
+    headers: {
+      ...(token && { Authorization: `Token ${token}` }),
+      'Content-Type': 'application/json',
+    },
+  }
+
   const fetchTripDetails = async () => {
     if (!trip) return
     try {
-      const response = await axios.get(`${API_BASE_URL}/trips/${trip.id}/`, axiosConfig)
+      const response = await axios.get(
+        `${API_BASE_URL}/trips/${trip.id}/`,
+        axiosConfig
+      )
       const data = response.data
       setFormData({
         name: data.name,
@@ -159,10 +156,14 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     setIsSaving(true)
     setError('')
     try {
-      await axios.put(`${API_BASE_URL}/trips/${trip.id}/`, {
-        ...formData,
-        vehicle: parseInt(formData.vehicle),
-      }, axiosConfig)
+      await axios.put(
+        `${API_BASE_URL}/trips/${trip.id}/`,
+        {
+          ...formData,
+          vehicle: parseInt(formData.vehicle),
+        },
+        axiosConfig
+      )
       onTripUpdated()
       onClose()
     } catch (err) {
@@ -180,12 +181,16 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     setIsAdding(true)
     setError('')
     try {
-      await axios.post(`${API_BASE_URL}/trip-stops/`, {
-        trip: trip.id,
-        stop: parseInt(newStop.stopId),
-        order: tripStops.length + 1,
-        planned_arrival_time: newStop.time,
-      }, axiosConfig)
+      await axios.post(
+        `${API_BASE_URL}/trip-stops/`,
+        {
+          trip: trip.id,
+          stop: parseInt(newStop.stopId),
+          order: tripStops.length + 1,
+          planned_arrival_time: newStop.time,
+        },
+        axiosConfig
+      )
       await fetchTripDetails()
       setNewStop({ stopId: '', time: '' })
       // Notify the map to redraw the trip route
@@ -247,9 +252,13 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       }))
 
       // Call the reorder API
-      await axios.post(`${API_BASE_URL}/trips/${trip.id}/reorder-stops/`, {
-        orders,
-      }, axiosConfig)
+      await axios.post(
+        `${API_BASE_URL}/trips/${trip.id}/reorder-stops/`,
+        {
+          orders,
+        },
+        axiosConfig
+      )
 
       // Refresh trip details to ensure we have the latest data
       await fetchTripDetails()

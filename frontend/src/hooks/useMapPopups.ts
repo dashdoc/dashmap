@@ -17,34 +17,37 @@ export const useMapPopups = () => {
     activePopups.current = activePopups.current.filter((p) => p !== popup)
   }, [])
 
-  const createPopup = useCallback((content: string, options?: mapboxgl.PopupOptions) => {
-    const popup = new mapboxgl.Popup({
-      offset: 25,
-      closeButton: true,
-      closeOnClick: false,
-      className: 'custom-popup',
-      ...options
-    }).setHTML(content)
+  const createPopup = useCallback(
+    (content: string, options?: mapboxgl.PopupOptions) => {
+      const popup = new mapboxgl.Popup({
+        offset: 25,
+        closeButton: true,
+        closeOnClick: false,
+        className: 'custom-popup',
+        ...options,
+      }).setHTML(content)
 
-    popup.on('open', () => {
-      // Remove this popup from activePopups if it exists, then close others
-      removePopup(popup)
-      closeAllPopups()
-      addPopup(popup)
-    })
+      popup.on('open', () => {
+        // Remove this popup from activePopups if it exists, then close others
+        removePopup(popup)
+        closeAllPopups()
+        addPopup(popup)
+      })
 
-    popup.on('close', () => {
-      removePopup(popup)
-    })
+      popup.on('close', () => {
+        removePopup(popup)
+      })
 
-    return popup
-  }, [closeAllPopups, addPopup, removePopup])
+      return popup
+    },
+    [closeAllPopups, addPopup, removePopup]
+  )
 
   return {
     closeAllPopups,
     addPopup,
     removePopup,
     createPopup,
-    activePopups: activePopups.current
+    activePopups: activePopups.current,
   }
 }

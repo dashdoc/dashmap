@@ -75,7 +75,10 @@ const MapView: React.FC = () => {
     }, 100)
   })
 
-  const { setupMapClickHandler } = useMapClickHandler(map, tripRoutes.closeAllPopups)
+  const { setupMapClickHandler } = useMapClickHandler(
+    map,
+    tripRoutes.closeAllPopups
+  )
 
   // Drawer state
   const {
@@ -102,13 +105,7 @@ const MapView: React.FC = () => {
       tripRoutes.forceRefreshTrips(trips, controls.showTrips)
       setShouldRefreshTrips(false)
     }
-  }, [
-    trips,
-    shouldRefreshTrips,
-    mapReady,
-    tripRoutes,
-    controls.showTrips,
-  ])
+  }, [trips, shouldRefreshTrips, mapReady, tripRoutes, controls.showTrips])
 
   // Handle control changes
   const handleControlChange = (control: keyof MapControls, value: boolean) => {

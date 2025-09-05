@@ -111,6 +111,6 @@ export const useStopMarkers = (
     addMarkersToMap,
     toggleVisibility,
     clearMarkers,
-    fitMapToStops
+    fitMapToStops,
   }
 }
