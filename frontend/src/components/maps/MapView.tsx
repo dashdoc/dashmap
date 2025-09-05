@@ -25,6 +25,31 @@ const MapView: React.FC = () => {
     await refetchTrips()
   }
 
+  const handleTripStopsChanged = async () => {
+    // Refresh the specific selected trip on the map immediately
+    if (selectedTrip) {
+      try {
+        // Fetch the latest trip data
+        const response = await fetch(
+          `http://localhost:8000/api/trips/${selectedTrip.id}/`
+        )
+        if (response.ok) {
+          const updatedTrip = await response.json()
+          // Update the selected trip state
+          setSelectedTrip(updatedTrip)
+          // Refresh just this trip's route on the map
+          refreshSelectedTrip(updatedTrip, controls.showTrips)
+        }
+      } catch (error) {
+        console.error('Error fetching updated trip:', error)
+      }
+    }
+
+    // Also trigger general trip refresh for the list
+    setShouldRefreshTrips(true)
+    await refetchTrips()
+  }
+
   const {
     addMarkersToMap,
     addTripsToMap,
@@ -36,6 +61,7 @@ const MapView: React.FC = () => {
     fitMapToTrip,
     resetSelectedTrip,
     forceRefreshTrips,
+    refreshSelectedTrip,
   } = useMapLayers(map, (trip: Trip) => {
     setSelectedTrip(trip)
     onDrawerOpen()
@@ -232,6 +258,7 @@ const MapView: React.FC = () => {
         }}
         trip={selectedTrip}
         onTripUpdated={handleTripUpdated}
+        onTripStopsChanged={handleTripStopsChanged}
       />
     </Box>
   )

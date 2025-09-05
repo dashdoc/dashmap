@@ -500,6 +500,37 @@ export const useMapLayers = (
     [map, addTripsToMap]
   )
 
+  const refreshSelectedTrip = useCallback(
+    (updatedTrip: Trip, showTrips: boolean) => {
+      if (!map.current || !selectedTripId.current) return
+
+      const tripId = selectedTripId.current
+      const sourceId = `trip-${tripId}`
+
+      // Remove the existing trip layer and source
+      if (map.current?.getSource(sourceId)) {
+        if (map.current?.getLayer(`${sourceId}-layer`)) {
+          map.current.removeLayer(`${sourceId}-layer`)
+        }
+        map.current.removeSource(sourceId)
+
+        // Remove from our tracking array
+        tripSources.current = tripSources.current.filter(
+          (id) => id !== sourceId
+        )
+      }
+
+      // Re-add the updated trip
+      addTripsToMap([updatedTrip], showTrips)
+
+      // Fit map to the updated trip
+      setTimeout(() => {
+        fitMapToTrip(updatedTrip, true)
+      }, 100)
+    },
+    [map, addTripsToMap, fitMapToTrip]
+  )
+
   return {
     addMarkersToMap,
     addTripsToMap,
@@ -512,5 +543,6 @@ export const useMapLayers = (
     fitMapToTrip,
     resetSelectedTrip,
     forceRefreshTrips,
+    refreshSelectedTrip,
   }
 }
