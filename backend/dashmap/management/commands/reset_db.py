@@ -230,31 +230,87 @@ class Command(BaseCommand):
         self.stdout.write('Creating test trips...')
         today = timezone.now().date()
 
-        # Create a few sample trips
+        # Create 10 sample trips
         trips_data = [
             {
-                'vehicle': vehicles[0],  # DASH-001
-                'name': 'Morning Delivery Route',
+                'vehicle': vehicles[0],  # FR-001-DM
+                'name': 'Paris to Marseille Export Route',
+                'date': today,
+                'start_time': '06:00:00',
+                'status': 'in_progress',
+                'stops': [stops[0], stops[3], stops[9]]  # Rungis -> Marseille Port -> Retail
+            },
+            {
+                'vehicle': vehicles[1],  # FR-002-DM
+                'name': 'Lyon Industrial Supply',
+                'date': today,
+                'start_time': '07:30:00',
+                'status': 'planned',
+                'stops': [stops[2], stops[10], stops[12]]  # Lyon Hub -> Auchan -> Casino
+            },
+            {
+                'vehicle': vehicles[2],  # FR-003-DM
+                'name': 'Le Havre to Brussels',
+                'date': today,
+                'start_time': '05:00:00',
+                'status': 'completed',
+                'stops': [stops[1], stops[16]]  # Le Havre -> Brussels
+            },
+            {
+                'vehicle': vehicles[3],  # FR-004-DM
+                'name': 'Toulouse Aerospace Delivery',
                 'date': today,
                 'start_time': '08:00:00',
                 'status': 'planned',
-                'stops': [stops[0], stops[3], stops[4]]  # Warehouse -> Downtown -> Mall
+                'stops': [stops[4], stops[19], stops[21]]  # Toulouse -> Airbus -> Tech
             },
             {
-                'vehicle': vehicles[1],  # DASH-002
-                'name': 'Afternoon Supply Run',
+                'vehicle': vehicles[4],  # FR-005-DM
+                'name': 'Rhine Valley Route',
+                'date': today,
+                'start_time': '06:30:00',
+                'status': 'in_progress',
+                'stops': [stops[5], stops[18], stops[22]]  # Strasbourg -> Frankfurt -> Luxembourg
+            },
+            {
+                'vehicle': vehicles[5],  # FR-006-DM
+                'name': 'Bordeaux Wine Export',
+                'date': today + timedelta(days=1),
+                'start_time': '09:00:00',
+                'status': 'draft',
+                'stops': [stops[7], stops[20]]  # Bordeaux -> Barcelona
+            },
+            {
+                'vehicle': vehicles[6],  # FR-007-DM
+                'name': 'Atlantic Coast Distribution',
+                'date': today + timedelta(days=1),
+                'start_time': '07:00:00',
+                'status': 'draft',
+                'stops': [stops[8], stops[11], stops[13]]  # Nantes -> Leclerc -> Intermarché
+            },
+            {
+                'vehicle': vehicles[7],  # FR-008-DM
+                'name': 'Champagne Region Export',
                 'date': today,
                 'start_time': '10:00:00',
-                'status': 'in_progress',
-                'stops': [stops[1], stops[5], stops[6]]  # Distribution -> Restaurant -> Pharmacy
+                'status': 'planned',
+                'stops': [stops[25], stops[17]]  # Reims -> Amsterdam
             },
             {
-                'vehicle': vehicles[3],  # ACME-100
-                'name': 'Next Day Office Delivery',
-                'date': today + timedelta(days=1),
-                'start_time': '09:30:00',
+                'vehicle': vehicles[8],  # FR-009-DM
+                'name': 'Manufacturing Supply Chain',
+                'date': today,
+                'start_time': '06:00:00',
+                'status': 'in_progress',
+                'stops': [stops[23], stops[24], stops[15]]  # Renault -> Michelin -> Milan
+            },
+            {
+                'vehicle': vehicles[9],  # FR-010-DM
+                'name': 'Cross-Border Logistics',
+                'date': today + timedelta(days=2),
+                'start_time': '05:30:00',
                 'status': 'draft',
-                'stops': [stops[2], stops[7]]  # Supply -> Office
+                'stops': [stops[30], stops[18], stops[21]]  # Calais -> Frankfurt -> Zurich
             }
         ]
 
@@ -348,7 +404,7 @@ class Command(BaseCommand):
         self.stdout.write('\nTest data includes:')
         self.stdout.write('• Dashmove company with 20 heavy trucks (18-40 tons capacity)')
         self.stdout.write('• 62 European stops (ports, warehouses, factories) across France and neighboring countries')
-        self.stdout.write('• 30 sample trips with different statuses')
+        self.stdout.write('• 10 sample trips with different statuses')
         self.stdout.write('• 48 hours of position data for 10 vehicles across European routes')
         self.stdout.write('• Realistic heavy truck logistics operations')
         self.stdout.write('• European coordinates and addresses')
