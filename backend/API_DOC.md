@@ -226,7 +226,10 @@ All list endpoints return data in this format:
     "address": "1 Rue de la Tour, 94150 Rungis, France",
     "latitude": "48.759000",
     "longitude": "2.352000",
-    "stop_type": "loading"
+    "stop_type": "pickup",
+    "contact_name": "Market Manager",
+    "contact_phone": "555-0001",
+    "notes": "Use loading dock B"
   },
   "delivery_stop": {
     "id": 15,
@@ -234,7 +237,10 @@ All list endpoints return data in this format:
     "address": "93 Avenue de Paris, 94300 Vincennes, France",
     "latitude": "48.847000",
     "longitude": "2.428000",
-    "stop_type": "unloading"
+    "stop_type": "delivery",
+    "contact_name": "Receiving Manager",
+    "contact_phone": "555-0015",
+    "notes": "Ring bell at entrance"
   },
   "goods_description": "Fresh produce and dairy products",
   "goods_weight": "2500.00",
@@ -304,7 +310,7 @@ All list endpoints return data in this format:
         "address": "100 Warehouse St",
         "latitude": "41.878113",
         "longitude": "-87.629799",
-        "stop_type": "loading",
+        "stop_type": "pickup",
         "contact_name": "Dock Manager",
         "contact_phone": "555-0001",
         "notes": "Use rear entrance"
@@ -315,13 +321,11 @@ All list endpoints return data in this format:
       "actual_departure_datetime": null,
       "notes": "First pickup",
       "is_completed": false,
-      "orders": [
-        {
-          "id": 1,
-          "order_number": "ORD-2024-0001",
-          "customer_name": "John Smith"
-        }
-      ]
+      "linked_order": {
+        "id": 1,
+        "order_number": "ORD-2024-0001",
+        "customer_name": "John Smith"
+      }
     }
   ],
   "created_at": "2024-01-15T08:00:00Z",
@@ -342,7 +346,7 @@ Includes all above fields plus:
         "address": "100 Warehouse St",
         "latitude": "41.878113",
         "longitude": "-87.629799",
-        "stop_type": "loading",
+        "stop_type": "pickup",
         "contact_name": "Dock Manager",
         "contact_phone": "555-0001",
         "notes": "Use rear entrance"
@@ -353,13 +357,11 @@ Includes all above fields plus:
       "actual_departure_datetime": null,
       "notes": "First pickup",
       "is_completed": false,
-      "orders": [
-        {
-          "id": 1,
-          "order_number": "ORD-2024-0001",
-          "customer_name": "John Smith"
-        }
-      ]
+      "linked_order": {
+        "id": 1,
+        "order_number": "ORD-2024-0001",
+        "customer_name": "John Smith"
+      }
     }
   ]
 }
@@ -398,7 +400,7 @@ Includes all above fields plus:
     "address": "100 Warehouse St",
     "latitude": "41.878113",
     "longitude": "-87.629799",
-    "stop_type": "loading"
+    "stop_type": "pickup"
   },
   "order": 1,
   "planned_arrival_time": "09:00:00",
@@ -406,21 +408,21 @@ Includes all above fields plus:
   "actual_departure_datetime": null,
   "notes": "First pickup",
   "is_completed": false,
-  "orders": [
-    {
-      "id": 1,
-      "order_number": "ORD-2024-0001",
-      "customer_name": "John Smith"
-    }
-  ]
+  "linked_order": {
+    "id": 1,
+    "order_number": "ORD-2024-0001",
+    "customer_name": "John Smith"
+  }
 }
 ```
 
-**Orders Field:**
-The `orders` field contains an array of orders that use this stop as either a pickup or delivery location. Each order includes:
+**Linked Order Field:**
+The `linked_order` field contains the order that uses this stop as either a pickup or delivery location. It includes:
 - `id`: Order ID for API references
 - `order_number`: Human-readable order number (e.g., "ORD-2024-0001")
 - `customer_name`: Name of the customer who placed the order
+
+The field will be `null` if no order is associated with the stop.
 
 #### Trip Stop Order Management
 

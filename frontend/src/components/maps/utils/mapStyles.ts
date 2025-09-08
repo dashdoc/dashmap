@@ -16,14 +16,14 @@ export const getStatusColor = (status: string): string => {
 }
 
 export const createStopMarkerElement = (
-  stopType: 'loading' | 'unloading'
+  stopType: 'pickup' | 'delivery'
 ): HTMLDivElement => {
   const markerElement = document.createElement('div')
   markerElement.style.width = '18px'
   markerElement.style.height = '18px'
   markerElement.style.borderRadius = '50%'
   markerElement.style.backgroundColor =
-    stopType === 'loading' ? '#3182ce' : '#38a169'
+    stopType === 'pickup' ? '#3182ce' : '#38a169'
   markerElement.style.border = '3px solid white'
   markerElement.style.boxShadow =
     '0 0 0 2px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3)'

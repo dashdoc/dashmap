@@ -226,7 +226,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           : {
               name: formData.pickup_stop.name,
               address: formData.pickup_stop.address,
-              stop_type: 'loading' as const,
+              stop_type: 'pickup' as const,
               contact_name: formData.pickup_stop.contact_name,
               contact_phone: formData.pickup_stop.contact_phone,
               notes: formData.pickup_stop.notes,
@@ -238,7 +238,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           : {
               name: formData.delivery_stop.name,
               address: formData.delivery_stop.address,
-              stop_type: 'unloading' as const,
+              stop_type: 'delivery' as const,
               contact_name: formData.delivery_stop.contact_name,
               contact_phone: formData.delivery_stop.contact_phone,
               notes: formData.delivery_stop.notes,

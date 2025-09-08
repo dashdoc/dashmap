@@ -22,7 +22,7 @@ export const useOrderMarkers = (
       orders.forEach((order) => {
         // Add pickup marker
         if (order.pickup_stop.latitude && order.pickup_stop.longitude) {
-          const pickupEl = createStopMarkerElement('loading')
+          const pickupEl = createStopMarkerElement('pickup')
           pickupEl.style.display = visible ? 'block' : 'none'
 
           const pickupPopup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
@@ -49,7 +49,7 @@ export const useOrderMarkers = (
 
         // Add delivery marker
         if (order.delivery_stop.latitude && order.delivery_stop.longitude) {
-          const deliveryEl = createStopMarkerElement('unloading')
+          const deliveryEl = createStopMarkerElement('delivery')
           deliveryEl.style.display = visible ? 'block' : 'none'
 
           const deliveryPopup = new mapboxgl.Popup({ offset: 25 }).setHTML(`

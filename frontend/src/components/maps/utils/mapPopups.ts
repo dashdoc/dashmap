@@ -6,7 +6,7 @@ export const createStopPopupContent = (stop: Stop): string => {
       <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">
         ${stop.name}
       </div>
-      <div style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; background-color: ${stop.stop_type === 'loading' ? '#ebf8ff' : '#f0fff4'}; color: ${stop.stop_type === 'loading' ? '#3182ce' : '#38a169'};">
+      <div style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 8px; background-color: ${stop.stop_type === 'pickup' ? '#ebf8ff' : '#f0fff4'}; color: ${stop.stop_type === 'pickup' ? '#3182ce' : '#38a169'};">
         ${stop.stop_type}
       </div>
       <div style="font-size: 12px; color: #666; margin-bottom: 4px;">

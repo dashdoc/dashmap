@@ -6,8 +6,6 @@ class Stop(models.Model):
     STOP_TYPES = [
         ('pickup', 'Pickup'),
         ('delivery', 'Delivery'),
-        ('loading', 'Loading'),
-        ('unloading', 'Unloading'),
     ]
 
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='stops', null=True, blank=True)

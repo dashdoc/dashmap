@@ -24,8 +24,8 @@ class OrderListCreateView(View):
         data = []
         for order in orders:
             stops = list(order.stops.all())
-            pickup_stops = [s for s in stops if s.stop_type in ['pickup', 'loading']]
-            delivery_stops = [s for s in stops if s.stop_type in ['delivery', 'unloading']]
+            pickup_stops = [s for s in stops if s.stop_type == 'pickup']
+            delivery_stops = [s for s in stops if s.stop_type == 'delivery']
 
             data.append({
                 'id': order.id,
@@ -34,17 +34,6 @@ class OrderListCreateView(View):
                 'customer_company': order.customer_company,
                 'customer_email': order.customer_email,
                 'customer_phone': order.customer_phone,
-                'stops': [{
-                    'id': stop.id,
-                    'name': stop.name,
-                    'address': stop.address,
-                    'latitude': str(stop.latitude) if stop.latitude else None,
-                    'longitude': str(stop.longitude) if stop.longitude else None,
-                    'stop_type': stop.stop_type,
-                    'contact_name': stop.contact_name,
-                    'contact_phone': stop.contact_phone,
-                    'notes': stop.notes,
-                } for stop in stops],
                 'pickup_stop': {
                     'id': pickup_stops[0].id,
                     'name': pickup_stops[0].name,
@@ -97,23 +86,37 @@ class OrderListCreateView(View):
                 requested_delivery_date=data.get('requested_delivery_date')
             )
 
-            # Create stops if provided
-            if 'stops' in data:
-                for stop_data in data['stops']:
-                    Stop.objects.create(
-                        order=order,
-                        name=stop_data['name'],
-                        address=stop_data['address'],
-                        latitude=stop_data.get('latitude'),
-                        longitude=stop_data.get('longitude'),
-                        stop_type=stop_data['stop_type'],
-                        contact_name=stop_data.get('contact_name', ''),
-                        contact_phone=stop_data.get('contact_phone', ''),
-                        notes=stop_data.get('notes', '')
-                    )
+            # Create pickup and delivery stops if provided
+            if 'pickup_stop' in data:
+                Stop.objects.create(
+                    order=order,
+                    name=data['pickup_stop']['name'],
+                    address=data['pickup_stop']['address'],
+                    latitude=data['pickup_stop'].get('latitude'),
+                    longitude=data['pickup_stop'].get('longitude'),
+                    stop_type=data['pickup_stop'].get('stop_type', 'pickup'),
+                    contact_name=data['pickup_stop'].get('contact_name', ''),
+                    contact_phone=data['pickup_stop'].get('contact_phone', ''),
+                    notes=data['pickup_stop'].get('notes', '')
+                )
+
+            if 'delivery_stop' in data:
+                Stop.objects.create(
+                    order=order,
+                    name=data['delivery_stop']['name'],
+                    address=data['delivery_stop']['address'],
+                    latitude=data['delivery_stop'].get('latitude'),
+                    longitude=data['delivery_stop'].get('longitude'),
+                    stop_type=data['delivery_stop'].get('stop_type', 'delivery'),
+                    contact_name=data['delivery_stop'].get('contact_name', ''),
+                    contact_phone=data['delivery_stop'].get('contact_phone', ''),
+                    notes=data['delivery_stop'].get('notes', '')
+                )
 
             order.refresh_from_db()
             stops = list(order.stops.all())
+            pickup_stops = [s for s in stops if s.stop_type == 'pickup']
+            delivery_stops = [s for s in stops if s.stop_type == 'delivery']
 
             return JsonResponse({
                 'id': order.id,
@@ -122,17 +125,28 @@ class OrderListCreateView(View):
                 'customer_company': order.customer_company,
                 'customer_email': order.customer_email,
                 'customer_phone': order.customer_phone,
-                'stops': [{
-                    'id': stop.id,
-                    'name': stop.name,
-                    'address': stop.address,
-                    'latitude': str(stop.latitude) if stop.latitude else None,
-                    'longitude': str(stop.longitude) if stop.longitude else None,
-                    'stop_type': stop.stop_type,
-                    'contact_name': stop.contact_name,
-                    'contact_phone': stop.contact_phone,
-                    'notes': stop.notes,
-                } for stop in stops],
+                'pickup_stop': {
+                    'id': pickup_stops[0].id,
+                    'name': pickup_stops[0].name,
+                    'address': pickup_stops[0].address,
+                    'latitude': str(pickup_stops[0].latitude) if pickup_stops[0].latitude else None,
+                    'longitude': str(pickup_stops[0].longitude) if pickup_stops[0].longitude else None,
+                    'stop_type': pickup_stops[0].stop_type,
+                    'contact_name': pickup_stops[0].contact_name,
+                    'contact_phone': pickup_stops[0].contact_phone,
+                    'notes': pickup_stops[0].notes,
+                } if pickup_stops else None,
+                'delivery_stop': {
+                    'id': delivery_stops[0].id,
+                    'name': delivery_stops[0].name,
+                    'address': delivery_stops[0].address,
+                    'latitude': str(delivery_stops[0].latitude) if delivery_stops[0].latitude else None,
+                    'longitude': str(delivery_stops[0].longitude) if delivery_stops[0].longitude else None,
+                    'stop_type': delivery_stops[0].stop_type,
+                    'contact_name': delivery_stops[0].contact_name,
+                    'contact_phone': delivery_stops[0].contact_phone,
+                    'notes': delivery_stops[0].notes,
+                } if delivery_stops else None,
                 'goods_description': order.goods_description,
                 'goods_weight': str(order.goods_weight) if order.goods_weight else None,
                 'goods_volume': str(order.goods_volume) if order.goods_volume else None,
@@ -229,21 +243,35 @@ class OrderDetailView(View):
             order.customer_email = data.get('customer_email', order.customer_email)
             order.customer_phone = data.get('customer_phone', order.customer_phone)
 
-            # Handle stops updates if provided
-            if 'stops' in data:
+            # Handle pickup and delivery stop updates if provided
+            if 'pickup_stop' in data or 'delivery_stop' in data:
                 # Clear existing stops and create new ones
                 order.stops.all().delete()
-                for stop_data in data['stops']:
+
+                if 'pickup_stop' in data:
                     Stop.objects.create(
                         order=order,
-                        name=stop_data['name'],
-                        address=stop_data['address'],
-                        latitude=stop_data.get('latitude'),
-                        longitude=stop_data.get('longitude'),
-                        stop_type=stop_data['stop_type'],
-                        contact_name=stop_data.get('contact_name', ''),
-                        contact_phone=stop_data.get('contact_phone', ''),
-                        notes=stop_data.get('notes', '')
+                        name=data['pickup_stop']['name'],
+                        address=data['pickup_stop']['address'],
+                        latitude=data['pickup_stop'].get('latitude'),
+                        longitude=data['pickup_stop'].get('longitude'),
+                        stop_type=data['pickup_stop'].get('stop_type', 'pickup'),
+                        contact_name=data['pickup_stop'].get('contact_name', ''),
+                        contact_phone=data['pickup_stop'].get('contact_phone', ''),
+                        notes=data['pickup_stop'].get('notes', '')
+                    )
+
+                if 'delivery_stop' in data:
+                    Stop.objects.create(
+                        order=order,
+                        name=data['delivery_stop']['name'],
+                        address=data['delivery_stop']['address'],
+                        latitude=data['delivery_stop'].get('latitude'),
+                        longitude=data['delivery_stop'].get('longitude'),
+                        stop_type=data['delivery_stop'].get('stop_type', 'delivery'),
+                        contact_name=data['delivery_stop'].get('contact_name', ''),
+                        contact_phone=data['delivery_stop'].get('contact_phone', ''),
+                        notes=data['delivery_stop'].get('notes', '')
                     )
 
             order.goods_description = data.get('goods_description', order.goods_description)
@@ -261,6 +289,8 @@ class OrderDetailView(View):
             order.save()
             order.refresh_from_db()
             stops = list(order.stops.all())
+            pickup_stops = [s for s in stops if s.stop_type == 'pickup']
+            delivery_stops = [s for s in stops if s.stop_type == 'delivery']
 
             return JsonResponse({
                 'id': order.id,
@@ -269,17 +299,28 @@ class OrderDetailView(View):
                 'customer_company': order.customer_company,
                 'customer_email': order.customer_email,
                 'customer_phone': order.customer_phone,
-                'stops': [{
-                    'id': stop.id,
-                    'name': stop.name,
-                    'address': stop.address,
-                    'latitude': str(stop.latitude) if stop.latitude else None,
-                    'longitude': str(stop.longitude) if stop.longitude else None,
-                    'stop_type': stop.stop_type,
-                    'contact_name': stop.contact_name,
-                    'contact_phone': stop.contact_phone,
-                    'notes': stop.notes,
-                } for stop in stops],
+                'pickup_stop': {
+                    'id': pickup_stops[0].id,
+                    'name': pickup_stops[0].name,
+                    'address': pickup_stops[0].address,
+                    'latitude': str(pickup_stops[0].latitude) if pickup_stops[0].latitude else None,
+                    'longitude': str(pickup_stops[0].longitude) if pickup_stops[0].longitude else None,
+                    'stop_type': pickup_stops[0].stop_type,
+                    'contact_name': pickup_stops[0].contact_name,
+                    'contact_phone': pickup_stops[0].contact_phone,
+                    'notes': pickup_stops[0].notes,
+                } if pickup_stops else None,
+                'delivery_stop': {
+                    'id': delivery_stops[0].id,
+                    'name': delivery_stops[0].name,
+                    'address': delivery_stops[0].address,
+                    'latitude': str(delivery_stops[0].latitude) if delivery_stops[0].latitude else None,
+                    'longitude': str(delivery_stops[0].longitude) if delivery_stops[0].longitude else None,
+                    'stop_type': delivery_stops[0].stop_type,
+                    'contact_name': delivery_stops[0].contact_name,
+                    'contact_phone': delivery_stops[0].contact_phone,
+                    'notes': delivery_stops[0].notes,
+                } if delivery_stops else None,
                 'goods_description': order.goods_description,
                 'goods_weight': str(order.goods_weight) if order.goods_weight else None,
                 'goods_volume': str(order.goods_volume) if order.goods_volume else None,

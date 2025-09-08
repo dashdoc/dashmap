@@ -274,7 +274,7 @@ export const TripDetailPage: React.FC = () => {
                       </HStack>
                       <Badge
                         colorScheme={
-                          tripStop.stop.stop_type === 'loading'
+                          tripStop.stop.stop_type === 'pickup'
                             ? 'blue'
                             : 'green'
                         }

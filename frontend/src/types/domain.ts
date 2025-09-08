@@ -41,7 +41,7 @@ export interface Stop {
   address: string
   latitude: string | null
   longitude: string | null
-  stop_type: 'loading' | 'unloading'
+  stop_type: 'pickup' | 'delivery'
   contact_name: string
   contact_phone: string
   notes: string
@@ -77,11 +77,11 @@ export interface TripStop {
   actual_departure_datetime: string | null
   notes: string
   is_completed: boolean
-  orders?: Array<{
+  linked_order?: {
     id: number
     order_number: string
     customer_name: string
-  }>
+  } | null
 }
 
 export interface Trip {

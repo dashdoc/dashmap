@@ -75,9 +75,8 @@ class OrderAPITestCase(TestCase):
         self.assertEqual(order_data['goods_description'], 'Test goods')
         self.assertEqual(order_data['status'], 'pending')
 
-        # Check stops array
-        self.assertIn('stops', order_data)
-        self.assertEqual(len(order_data['stops']), 2)
+        # Check that stops array is no longer present
+        self.assertNotIn('stops', order_data)
 
         # Check pickup_stop is properly serialized (not raw object)
         self.assertIn('pickup_stop', order_data)
@@ -119,25 +118,23 @@ class OrderAPITestCase(TestCase):
         self.assertEqual(delivery['name'], 'Test Delivery Location')
 
     def test_create_order_with_stops(self):
-        """Test creating an order with stops"""
+        """Test creating an order with pickup_stop and delivery_stop"""
         order_data = {
             'customer_name': 'New Customer',
             'customer_company': 'New Company',
             'goods_description': 'New goods',
-            'stops': [
-                {
-                    'name': 'New Pickup',
-                    'address': '789 New St, City, State 11111',
-                    'stop_type': 'pickup',
-                    'contact_name': 'New Contact'
-                },
-                {
-                    'name': 'New Delivery',
-                    'address': '101 New Ave, City, State 22222',
-                    'stop_type': 'delivery',
-                    'contact_name': 'New Delivery Contact'
-                }
-            ]
+            'pickup_stop': {
+                'name': 'New Pickup',
+                'address': '789 New St, City, State 11111',
+                'stop_type': 'pickup',
+                'contact_name': 'New Contact'
+            },
+            'delivery_stop': {
+                'name': 'New Delivery',
+                'address': '101 New Ave, City, State 22222',
+                'stop_type': 'delivery',
+                'contact_name': 'New Delivery Contact'
+            }
         }
 
         response = self.authenticated_request('POST', '/api/orders/',
@@ -149,8 +146,9 @@ class OrderAPITestCase(TestCase):
 
         response_data = response.json()
         self.assertEqual(response_data['customer_name'], 'New Customer')
-        self.assertIn('stops', response_data)
-        self.assertEqual(len(response_data['stops']), 2)
+        self.assertNotIn('stops', response_data)
+        self.assertIn('pickup_stop', response_data)
+        self.assertIn('delivery_stop', response_data)
 
         # Verify stops were created in database
         new_order = Order.objects.get(id=response_data['id'])
@@ -178,4 +176,4 @@ class OrderAPITestCase(TestCase):
         # Should handle null pickup/delivery stops gracefully
         self.assertIsNone(empty_order_data['pickup_stop'])
         self.assertIsNone(empty_order_data['delivery_stop'])
-        self.assertEqual(len(empty_order_data['stops']), 0)
+        self.assertNotIn('stops', empty_order_data)
