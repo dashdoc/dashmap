@@ -32,11 +32,12 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Resetting database...'))
 
-        # Clear existing data
+        # Clear existing data (order matters due to foreign key constraints)
         self.stdout.write('Clearing existing data...')
         Position.objects.all().delete()
         TripStop.objects.all().delete()
         Trip.objects.all().delete()
+        Order.objects.all().delete()  # Delete orders before stops
         Stop.objects.all().delete()
         Vehicle.objects.all().delete()
         UserProfile.objects.all().delete()
