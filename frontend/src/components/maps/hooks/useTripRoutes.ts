@@ -1,8 +1,11 @@
 import { useRef, useCallback } from 'react'
 import mapboxgl from 'mapbox-gl'
 import type { Trip } from '../../../types/map'
-import { createTripPopupContent } from '../utils/mapPopups'
-import { getStatusColor } from '../utils/mapStyles'
+import {
+  createTripPopupContent,
+  createStopPopupContent,
+} from '../utils/mapPopups'
+import { getStatusColor, createStopMarkerElement } from '../utils/mapStyles'
 export const useTripRoutes = (
   map: React.MutableRefObject<mapboxgl.Map | null>,
   onTripClick?: (trip: Trip) => void
@@ -10,6 +13,7 @@ export const useTripRoutes = (
   const tripSources = useRef<string[]>([])
   const selectedTripId = useRef<number | null>(null)
   const activePopups = useRef<mapboxgl.Popup[]>([])
+  const stopMarkers = useRef<mapboxgl.Marker[]>([])
 
   const closeAllPopups = useCallback(() => {
     activePopups.current.forEach((popup) => popup.remove())
@@ -87,7 +91,7 @@ export const useTripRoutes = (
 
       loadChevronImages()
 
-      // Always clear existing trip sources to ensure fresh data
+      // Clear existing trip sources
       tripSources.current.forEach((sourceId) => {
         if (map.current?.getSource(sourceId)) {
           if (map.current?.getLayer(`${sourceId}-layer`)) {
@@ -98,6 +102,10 @@ export const useTripRoutes = (
       })
       tripSources.current = []
 
+      // Clear existing stop markers
+      stopMarkers.current.forEach((marker) => marker.remove())
+      stopMarkers.current = []
+
       trips.forEach((trip) => {
         if (!trip.trip_stops || trip.trip_stops.length < 2) return
 
@@ -106,24 +114,19 @@ export const useTripRoutes = (
           (a, b) => a.order - b.order
         )
 
-        // Filter stops with valid coordinates
         const validStops = sortedStops.filter(
           (tripStop) => tripStop.stop.latitude && tripStop.stop.longitude
         )
 
         if (validStops.length < 2) return
 
-        // Create line coordinates
         const coordinates = validStops.map((tripStop) => [
           parseFloat(tripStop.stop.longitude!),
           parseFloat(tripStop.stop.latitude!),
         ])
 
-        // Create a unique source ID for this trip
         const sourceId = `trip-${trip.id}`
         tripSources.current.push(sourceId)
-
-        // Add source and layer for the trip route
         map.current!.addSource(sourceId, {
           type: 'geojson',
           data: {
@@ -141,7 +144,6 @@ export const useTripRoutes = (
         })
 
         const statusColor = getStatusColor(trip.status)
-        // Use selected pattern if this trip is currently selected
         const patternId =
           selectedTripId.current === trip.id
             ? 'trip-chevron-selected'
@@ -230,6 +232,53 @@ export const useTripRoutes = (
         map.current!.on('mouseleave', `${sourceId}-layer`, () => {
           map.current!.getCanvas().style.cursor = ''
         })
+
+        validStops.forEach((tripStop) => {
+          const lat = parseFloat(tripStop.stop.latitude!)
+          const lng = parseFloat(tripStop.stop.longitude!)
+
+          const markerElement = createStopMarkerElement(tripStop.stop.stop_type)
+          const popupContent = createStopPopupContent(tripStop.stop)
+
+          const popup = new mapboxgl.Popup({
+            offset: 25,
+            closeButton: true,
+            closeOnClick: false,
+            className: 'custom-popup',
+          }).setHTML(popupContent)
+
+          popup.on('open', () => {
+            activePopups.current = activePopups.current.filter(
+              (p) => p !== popup
+            )
+            closeAllPopups()
+            activePopups.current.push(popup)
+          })
+
+          popup.on('close', () => {
+            activePopups.current = activePopups.current.filter(
+              (p) => p !== popup
+            )
+          })
+
+          const marker = new mapboxgl.Marker(markerElement)
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(map.current!)
+
+          markerElement.addEventListener('click', (e) => {
+            e.stopPropagation()
+            closeAllPopups()
+
+            if (map.current) {
+              popup.setLngLat([lng, lat]).addTo(map.current)
+              activePopups.current.push(popup)
+            }
+          })
+
+          markerElement.style.display = showTrips ? 'block' : 'none'
+          stopMarkers.current.push(marker)
+        })
       })
     },
     [map, closeAllPopups, onTripClick, createPopup, loadChevronImages]
@@ -249,10 +298,9 @@ export const useTripRoutes = (
           }
         })
 
-        // Toggle arrow markers visibility
-        const arrowElements = document.querySelectorAll('.trip-arrow')
-        arrowElements.forEach((element) => {
-          ;(element as HTMLElement).style.opacity = showTrips ? '0.8' : '0'
+        stopMarkers.current.forEach((marker) => {
+          const markerEl = marker.getElement()
+          markerEl.style.display = showTrips ? 'block' : 'none'
         })
       }
     },

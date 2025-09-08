@@ -17,7 +17,6 @@ export const useOrderMarkers = (
     (orders: Order[], visible: boolean) => {
       if (!mapRef.current || !orders.length) return
 
-      // Clear existing markers
       clearMarkers()
 
       orders.forEach((order) => {
