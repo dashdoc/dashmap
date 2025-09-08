@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
+  Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
   Button,
   FormControl,
   FormLabel,
@@ -18,9 +18,13 @@ import {
   Textarea,
   SimpleGrid,
   HStack,
+  Box,
+  Text,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { post, put } from '../../lib/api'
-import type { Order, Stop } from '../../types/domain'
+import type { Order } from '../../types/domain'
+import { StopForm } from './StopForm'
 
 interface OrderFormProps {
   isOpen: boolean
@@ -40,8 +44,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     customer_company: '',
     customer_email: '',
     customer_phone: '',
-    pickup_stop: '',
-    delivery_stop: '',
+    pickup_stop: {
+      id: undefined,
+      name: '',
+      address: '',
+      contact_name: '',
+      contact_phone: '',
+      notes: '',
+    },
+    delivery_stop: {
+      id: undefined,
+      name: '',
+      address: '',
+      contact_name: '',
+      contact_phone: '',
+      notes: '',
+    },
     goods_description: '',
     goods_weight: '',
     goods_volume: '',
@@ -51,30 +69,16 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     requested_pickup_date: '',
     requested_delivery_date: '',
   })
-  const [stops, setStops] = useState<Stop[]>([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [loadingStops, setLoadingStops] = useState(false)
-
-  const fetchStops = async () => {
-    try {
-      setLoadingStops(true)
-      // Note: We still need stops for the pickup/delivery selection
-      // In a real implementation, you might want to create an internal stops endpoint
-      // For now, this will fail gracefully since we removed the public stops API
-      setStops([])
-    } catch (err) {
-      console.error('Error fetching stops:', err)
-    } finally {
-      setLoadingStops(false)
-    }
-  }
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchStops()
-    }
-  }, [isOpen])
+  const [editingStopType, setEditingStopType] = useState<
+    'pickup' | 'delivery' | null
+  >(null)
+  const {
+    isOpen: isStopFormOpen,
+    onOpen: onStopFormOpen,
+    onClose: onStopFormClose,
+  } = useDisclosure()
 
   useEffect(() => {
     if (order) {
@@ -83,8 +87,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         customer_company: order.customer_company,
         customer_email: order.customer_email,
         customer_phone: order.customer_phone,
-        pickup_stop: order.pickup_stop.id.toString(),
-        delivery_stop: order.delivery_stop.id.toString(),
+        pickup_stop: {
+          id: order.pickup_stop.id,
+          name: order.pickup_stop.name,
+          address: order.pickup_stop.address,
+          contact_name: order.pickup_stop.contact_name,
+          contact_phone: order.pickup_stop.contact_phone,
+          notes: order.pickup_stop.notes,
+        },
+        delivery_stop: {
+          id: order.delivery_stop.id,
+          name: order.delivery_stop.name,
+          address: order.delivery_stop.address,
+          contact_name: order.delivery_stop.contact_name,
+          contact_phone: order.delivery_stop.contact_phone,
+          notes: order.delivery_stop.notes,
+        },
         goods_description: order.goods_description,
         goods_weight: order.goods_weight || '',
         goods_volume: order.goods_volume || '',
@@ -100,8 +118,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         customer_company: '',
         customer_email: '',
         customer_phone: '',
-        pickup_stop: '',
-        delivery_stop: '',
+        pickup_stop: {
+          id: undefined,
+          name: '',
+          address: '',
+          contact_name: '',
+          contact_phone: '',
+          notes: '',
+        },
+        delivery_stop: {
+          id: undefined,
+          name: '',
+          address: '',
+          contact_name: '',
+          contact_phone: '',
+          notes: '',
+        },
         goods_description: '',
         goods_weight: '',
         goods_volume: '',
@@ -116,25 +148,64 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   }, [order, isOpen])
 
   const handleChange =
-    (field: string) =>
+    (field: string, subField?: string) =>
     (
       e: React.ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >
     ) => {
+      if (subField) {
+        setFormData((prev) => ({
+          ...prev,
+          [field]: {
+            ...prev[field as keyof typeof prev],
+            [subField]: e.target.value,
+          },
+        }))
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [field]: e.target.value,
+        }))
+      }
+    }
+
+  const openStopForm = (stopType: 'pickup' | 'delivery') => {
+    setEditingStopType(stopType)
+    onStopFormOpen()
+  }
+
+  const handleStopSave = (stopData: {
+    id?: number
+    name: string
+    address: string
+    contact_name: string
+    contact_phone: string
+    notes: string
+  }) => {
+    if (editingStopType) {
       setFormData((prev) => ({
         ...prev,
-        [field]: e.target.value,
+        [editingStopType === 'pickup' ? 'pickup_stop' : 'delivery_stop']:
+          stopData,
       }))
     }
+  }
+
+  const handleStopFormClose = () => {
+    onStopFormClose()
+    setEditingStopType(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (
       !formData.customer_name ||
-      !formData.pickup_stop ||
-      !formData.delivery_stop ||
+      !formData.pickup_stop.name ||
+      !formData.pickup_stop.address ||
+      !formData.delivery_stop.name ||
+      !formData.delivery_stop.address ||
       !formData.goods_description
     ) {
       setError('Please fill in all required fields.')
@@ -150,8 +221,30 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         customer_company: formData.customer_company,
         customer_email: formData.customer_email,
         customer_phone: formData.customer_phone,
-        pickup_stop: parseInt(formData.pickup_stop),
-        delivery_stop: parseInt(formData.delivery_stop),
+        pickup_stop: formData.pickup_stop.id
+          ? formData.pickup_stop.id
+          : {
+              name: formData.pickup_stop.name,
+              address: formData.pickup_stop.address,
+              stop_type: 'loading' as const,
+              contact_name: formData.pickup_stop.contact_name,
+              contact_phone: formData.pickup_stop.contact_phone,
+              notes: formData.pickup_stop.notes,
+              latitude: null,
+              longitude: null,
+            },
+        delivery_stop: formData.delivery_stop.id
+          ? formData.delivery_stop.id
+          : {
+              name: formData.delivery_stop.name,
+              address: formData.delivery_stop.address,
+              stop_type: 'unloading' as const,
+              contact_name: formData.delivery_stop.contact_name,
+              contact_phone: formData.delivery_stop.contact_phone,
+              notes: formData.delivery_stop.notes,
+              latitude: null,
+              longitude: null,
+            },
         goods_description: formData.goods_description,
         goods_weight: formData.goods_weight
           ? parseFloat(formData.goods_weight)
@@ -182,14 +275,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent maxW="900px">
+    <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xl">
+      <DrawerOverlay />
+      <DrawerContent maxW="900px">
+        <DrawerCloseButton />
+        <DrawerHeader>{order ? 'Edit Order' : 'Create New Order'}</DrawerHeader>
         <form onSubmit={handleSubmit}>
-          <ModalHeader>{order ? 'Edit Order' : 'Create New Order'}</ModalHeader>
-          <ModalCloseButton />
-
-          <ModalBody>
+          <DrawerBody>
             <VStack spacing={4} align="stretch">
               {error && (
                 <Alert status="error">
@@ -238,38 +330,102 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
                 <FormControl isRequired>
                   <FormLabel>Pickup Location</FormLabel>
-                  <Select
-                    value={formData.pickup_stop}
-                    onChange={handleChange('pickup_stop')}
-                    placeholder="Select pickup location"
-                    isDisabled={loadingStops}
+                  <Box
+                    p={4}
+                    border="1px"
+                    borderColor={
+                      formData.pickup_stop.name ? 'blue.200' : 'gray.200'
+                    }
+                    borderRadius="md"
+                    bg={formData.pickup_stop.name ? 'blue.50' : 'gray.50'}
                   >
-                    {stops
-                      .filter((s) => s.stop_type === 'loading')
-                      .map((stop) => (
-                        <option key={stop.id} value={stop.id}>
-                          {stop.name}
-                        </option>
-                      ))}
-                  </Select>
+                    {formData.pickup_stop.name ? (
+                      <VStack align="start" spacing={1}>
+                        <Text fontWeight="bold" color="blue.700">
+                          {formData.pickup_stop.name}
+                        </Text>
+                        <Text fontSize="sm" color="gray.600">
+                          {formData.pickup_stop.address}
+                        </Text>
+                        {formData.pickup_stop.contact_name && (
+                          <Text fontSize="sm">
+                            Contact: {formData.pickup_stop.contact_name}
+                          </Text>
+                        )}
+                        <Button
+                          size="sm"
+                          colorScheme="blue"
+                          variant="outline"
+                          onClick={() => openStopForm('pickup')}
+                          mt={2}
+                        >
+                          Edit Pickup Location
+                        </Button>
+                      </VStack>
+                    ) : (
+                      <VStack>
+                        <Text color="gray.500">
+                          No pickup location selected
+                        </Text>
+                        <Button
+                          colorScheme="blue"
+                          onClick={() => openStopForm('pickup')}
+                        >
+                          Add Pickup Location
+                        </Button>
+                      </VStack>
+                    )}
+                  </Box>
                 </FormControl>
 
                 <FormControl isRequired>
                   <FormLabel>Delivery Location</FormLabel>
-                  <Select
-                    value={formData.delivery_stop}
-                    onChange={handleChange('delivery_stop')}
-                    placeholder="Select delivery location"
-                    isDisabled={loadingStops}
+                  <Box
+                    p={4}
+                    border="1px"
+                    borderColor={
+                      formData.delivery_stop.name ? 'green.200' : 'gray.200'
+                    }
+                    borderRadius="md"
+                    bg={formData.delivery_stop.name ? 'green.50' : 'gray.50'}
                   >
-                    {stops
-                      .filter((s) => s.stop_type === 'unloading')
-                      .map((stop) => (
-                        <option key={stop.id} value={stop.id}>
-                          {stop.name}
-                        </option>
-                      ))}
-                  </Select>
+                    {formData.delivery_stop.name ? (
+                      <VStack align="start" spacing={1}>
+                        <Text fontWeight="bold" color="green.700">
+                          {formData.delivery_stop.name}
+                        </Text>
+                        <Text fontSize="sm" color="gray.600">
+                          {formData.delivery_stop.address}
+                        </Text>
+                        {formData.delivery_stop.contact_name && (
+                          <Text fontSize="sm">
+                            Contact: {formData.delivery_stop.contact_name}
+                          </Text>
+                        )}
+                        <Button
+                          size="sm"
+                          colorScheme="green"
+                          variant="outline"
+                          onClick={() => openStopForm('delivery')}
+                          mt={2}
+                        >
+                          Edit Delivery Location
+                        </Button>
+                      </VStack>
+                    ) : (
+                      <VStack>
+                        <Text color="gray.500">
+                          No delivery location selected
+                        </Text>
+                        <Button
+                          colorScheme="green"
+                          onClick={() => openStopForm('delivery')}
+                        >
+                          Add Delivery Location
+                        </Button>
+                      </VStack>
+                    )}
+                  </Box>
                 </FormControl>
 
                 <FormControl isRequired>
@@ -365,9 +521,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                 </FormControl>
               </SimpleGrid>
             </VStack>
-          </ModalBody>
+          </DrawerBody>
 
-          <ModalFooter>
+          <DrawerFooter>
             <Button variant="ghost" mr={3} onClick={onClose}>
               Cancel
             </Button>
@@ -379,9 +535,23 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             >
               {order ? 'Update Order' : 'Create Order'}
             </Button>
-          </ModalFooter>
+          </DrawerFooter>
         </form>
-      </ModalContent>
-    </Modal>
+      </DrawerContent>
+
+      <StopForm
+        isOpen={isStopFormOpen}
+        onClose={handleStopFormClose}
+        onSave={handleStopSave}
+        stopType={editingStopType || 'pickup'}
+        initialData={
+          editingStopType
+            ? formData[
+                editingStopType === 'pickup' ? 'pickup_stop' : 'delivery_stop'
+              ]
+            : undefined
+        }
+      />
+    </Drawer>
   )
 }

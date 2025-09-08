@@ -6,7 +6,9 @@ import { AuthPage } from './components/auth/AuthPage'
 import { Layout } from './components/layout/Layout'
 import { VehicleManagement } from './components/vehicles/VehicleManagement'
 import { OrderManagement } from './components/orders/OrderManagement'
+import { OrderDetailPage } from './components/orders/OrderDetailPage'
 import { TripManagement } from './components/trips/TripManagement'
+import { TripDetailPage } from './components/trips/TripDetailPage'
 import { Settings } from './components/settings/Settings'
 import MapView from './components/maps/MapView'
 
@@ -45,6 +47,14 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
+        path="/trips/:id"
+        element={
+          <Layout>
+            <TripDetailPage />
+          </Layout>
+        }
+      />
+      <Route
         path="/vehicles"
         element={
           <Layout>
@@ -57,6 +67,14 @@ const AppContent: React.FC = () => {
         element={
           <Layout>
             <OrderManagement />
+          </Layout>
+        }
+      />
+      <Route
+        path="/orders/:id"
+        element={
+          <Layout>
+            <OrderDetailPage />
           </Layout>
         }
       />

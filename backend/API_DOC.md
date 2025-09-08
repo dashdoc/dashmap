@@ -313,7 +313,14 @@ All list endpoints return data in this format:
       "actual_arrival_datetime": null,
       "actual_departure_datetime": null,
       "notes": "First pickup",
-      "is_completed": false
+      "is_completed": false,
+      "orders": [
+        {
+          "id": 1,
+          "order_number": "ORD-2024-0001",
+          "customer_name": "John Smith"
+        }
+      ]
     }
   ],
   "created_at": "2024-01-15T08:00:00Z",
@@ -344,7 +351,14 @@ Includes all above fields plus:
       "actual_arrival_datetime": null,
       "actual_departure_datetime": null,
       "notes": "First pickup",
-      "is_completed": false
+      "is_completed": false,
+      "orders": [
+        {
+          "id": 1,
+          "order_number": "ORD-2024-0001",
+          "customer_name": "John Smith"
+        }
+      ]
     }
   ]
 }
@@ -390,9 +404,22 @@ Includes all above fields plus:
   "actual_arrival_datetime": null,
   "actual_departure_datetime": null,
   "notes": "First pickup",
-  "is_completed": false
+  "is_completed": false,
+  "orders": [
+    {
+      "id": 1,
+      "order_number": "ORD-2024-0001",
+      "customer_name": "John Smith"
+    }
+  ]
 }
 ```
+
+**Orders Field:**
+The `orders` field contains an array of orders that use this stop as either a pickup or delivery location. Each order includes:
+- `id`: Order ID for API references
+- `order_number`: Human-readable order number (e.g., "ORD-2024-0001")
+- `customer_name`: Name of the customer who placed the order
 
 #### Trip Stop Order Management
 

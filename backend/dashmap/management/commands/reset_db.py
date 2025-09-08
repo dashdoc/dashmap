@@ -233,53 +233,92 @@ class Command(BaseCommand):
         loading_stops = [s for s in stops if s.stop_type == 'loading']
         unloading_stops = [s for s in stops if s.stop_type == 'unloading']
 
-        orders_data = [
+        # Create orders for the specific stops that will be used in trips
+        # This ensures that trip stops will have associated orders
+        trip_specific_orders = [
+            # Order for Trip 1 (Paris to Marseille Export Route)
+            # stops[0], stops[3], stops[9] -> Rungis, Marseille Port, Retail
             {
                 'customer_name': 'ACME Manufacturing',
                 'customer_company': 'ACME Corp',
                 'customer_email': 'logistics@acme.com',
                 'customer_phone': '+33-1-42-00-1234',
-                'pickup_stop': loading_stops[0],  # Rungis
-                'delivery_stop': unloading_stops[0],  # Carrefour Paris
+                'pickup_stop': stops[0],  # Rungis (loading)
+                'delivery_stop': stops[9],  # A retail location (should be unloading)
                 'goods_description': 'Fresh produce and dairy products',
                 'goods_weight': 2500.0,
                 'goods_volume': 15.0,
                 'goods_type': 'refrigerated',
                 'special_instructions': 'Keep temperature at 2-4°C throughout transport'
             },
+            # Order for Trip 2 (Lyon Industrial Supply)
+            # stops[2], stops[10], stops[12] -> Lyon Hub, Auchan, Casino
             {
                 'customer_name': 'TechCorp Europe',
                 'customer_company': 'TechCorp Ltd',
                 'customer_email': 'supply@techcorp.eu',
                 'customer_phone': '+33-1-45-67-8900',
-                'pickup_stop': loading_stops[4],  # Toulouse Aerospace
-                'delivery_stop': unloading_stops[7],  # Frankfurt
-                'goods_description': 'Aerospace electronic components',
+                'pickup_stop': stops[2],  # Lyon Hub (loading)
+                'delivery_stop': stops[10],  # Auchan (unloading)
+                'goods_description': 'Industrial electronic components',
                 'goods_weight': 850.0,
                 'goods_volume': 5.2,
                 'goods_type': 'fragile',
                 'special_instructions': 'Handle with extreme care - sensitive electronics'
             },
+            # Order for Trip 3 (Le Havre to Brussels)
+            # stops[1], stops[16] -> Le Havre, Brussels
             {
                 'customer_name': 'EuroConstruction',
                 'customer_company': 'EuroConstruction SA',
                 'customer_email': 'orders@euroconstruct.fr',
                 'customer_phone': '+33-4-78-90-1234',
-                'pickup_stop': loading_stops[8],  # Saint-Gobain Melun
-                'delivery_stop': unloading_stops[4],  # Brussels
+                'pickup_stop': stops[1],  # Le Havre (loading)
+                'delivery_stop': stops[16],  # Brussels (unloading)
                 'goods_description': 'Construction materials and tools',
                 'goods_weight': 4200.0,
                 'goods_volume': 28.0,
                 'goods_type': 'standard',
                 'special_instructions': 'Delivery to construction site - crane available'
             },
+            # Order for Trip 4 (Toulouse Aerospace Delivery)
+            # stops[4], stops[19], stops[21] -> Toulouse, Airbus, Tech
+            {
+                'customer_name': 'AeroSupply International',
+                'customer_company': 'AeroSupply Ltd',
+                'customer_email': 'urgent@aerosupply.com',
+                'customer_phone': '+33-5-61-00-1234',
+                'pickup_stop': stops[4],  # Toulouse Aerospace (loading)
+                'delivery_stop': stops[19],  # Airbus (unloading)
+                'goods_description': 'Aerospace manufacturing components',
+                'goods_weight': 1200.0,
+                'goods_volume': 8.5,
+                'goods_type': 'standard',
+                'special_instructions': 'Time-critical delivery for production line'
+            },
+            # Order for Trip 5 (Rhine Valley Route)
+            # stops[5], stops[18], stops[22] -> Strasbourg, Frankfurt, Luxembourg
+            {
+                'customer_name': 'Rhine Logistics',
+                'customer_company': 'Rhine Transport GmbH',
+                'customer_email': 'operations@rhinetransport.de',
+                'customer_phone': '+33-3-88-00-5678',
+                'pickup_stop': stops[5],  # Strasbourg Rhine Port (loading)
+                'delivery_stop': stops[18],  # Frankfurt (unloading)
+                'goods_description': 'Industrial machinery parts',
+                'goods_weight': 3200.0,
+                'goods_volume': 18.0,
+                'goods_type': 'oversized',
+                'special_instructions': 'Requires special handling equipment'
+            },
+            # Additional orders for variety
             {
                 'customer_name': 'PharmaLogistics',
                 'customer_company': 'PharmaDistrib',
                 'customer_email': 'urgent@pharmadistrib.com',
                 'customer_phone': '+33-1-56-78-9012',
-                'pickup_stop': loading_stops[9],  # Sanofi
-                'delivery_stop': unloading_stops[8],  # Milan
+                'pickup_stop': loading_stops[9] if len(loading_stops) > 9 else loading_stops[0],  # Fallback to first if not enough
+                'delivery_stop': unloading_stops[8] if len(unloading_stops) > 8 else unloading_stops[0],
                 'goods_description': 'Pharmaceutical supplies and medications',
                 'goods_weight': 320.0,
                 'goods_volume': 2.8,
@@ -291,8 +330,8 @@ class Command(BaseCommand):
                 'customer_company': 'EliteStores International',
                 'customer_email': 'procurement@elitestores.com',
                 'customer_phone': '+33-1-44-55-6677',
-                'pickup_stop': loading_stops[10],  # LVMH Logistics
-                'delivery_stop': unloading_stops[10],  # Zurich
+                'pickup_stop': loading_stops[10] if len(loading_stops) > 10 else loading_stops[1],
+                'delivery_stop': unloading_stops[10] if len(unloading_stops) > 10 else unloading_stops[1],
                 'goods_description': 'Luxury fashion and accessories',
                 'goods_weight': 180.0,
                 'goods_volume': 8.5,
@@ -302,7 +341,7 @@ class Command(BaseCommand):
         ]
 
         orders = []
-        for o_data in orders_data:
+        for o_data in trip_specific_orders:
             order = Order.objects.create(
                 customer_name=o_data['customer_name'],
                 customer_company=o_data['customer_company'],
@@ -498,7 +537,8 @@ class Command(BaseCommand):
         self.stdout.write(f'Positions: {Position.objects.count()}')
         self.stdout.write('\nTest data includes:')
         self.stdout.write('• Dashmove company with 20 heavy trucks (18-40 tons capacity)')
-        self.stdout.write('• 5 sample orders with customer details, pickup/delivery locations, and goods information')
+        self.stdout.write('• 7 sample orders with customer details, pickup/delivery locations, and goods information')
+        self.stdout.write('• Orders specifically created to match trip stops for testing order linking')
         self.stdout.write('• 10 sample trips with different statuses')
         self.stdout.write('• 48 hours of position data for 10 vehicles across European routes')
         self.stdout.write('• Realistic heavy truck logistics operations')

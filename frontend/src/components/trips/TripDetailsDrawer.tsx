@@ -22,6 +22,8 @@ import {
   AlertIcon,
   Badge,
   useToast,
+  Link,
+  Text,
 } from '@chakra-ui/react'
 import { DeleteIcon } from '@chakra-ui/icons'
 import { GripVertical } from 'lucide-react'
@@ -31,6 +33,7 @@ import {
   Draggable,
   type DropResult,
 } from '@hello-pangea/dnd'
+import { Link as RouterLink } from 'react-router-dom'
 import { get, put, post, del } from '../../lib/api'
 import type { Trip, Stop, TripStop } from '../../types/domain'
 
@@ -373,6 +376,29 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                                     <Box fontSize="sm" color="gray.600" mt={1}>
                                       Arrival: {ts.planned_arrival_time}
                                     </Box>
+                                    {ts.orders && ts.orders.length > 0 && (
+                                      <Box fontSize="sm" mt={1}>
+                                        <Text
+                                          color="blue.600"
+                                          fontWeight="medium"
+                                        >
+                                          Orders:
+                                        </Text>
+                                        {ts.orders.map((order) => (
+                                          <Link
+                                            key={order.id}
+                                            as={RouterLink}
+                                            to={`/orders/${order.id}`}
+                                            color="blue.500"
+                                            fontSize="sm"
+                                            textDecoration="underline"
+                                            mr={2}
+                                          >
+                                            {order.order_number}
+                                          </Link>
+                                        ))}
+                                      </Box>
+                                    )}
                                   </Box>
                                   <Badge
                                     colorScheme={

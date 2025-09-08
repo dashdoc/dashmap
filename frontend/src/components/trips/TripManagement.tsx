@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import {
   Box,
-  Button,
   Table,
   Thead,
   Tbody,
@@ -19,8 +18,7 @@ import {
   IconButton,
   Text,
 } from '@chakra-ui/react'
-import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons'
-import { TripForm } from './TripForm'
+import { EditIcon, DeleteIcon } from '@chakra-ui/icons'
 import { ConfirmDialog } from '../common/ConfirmDialog'
 import { TripDetailsDrawer } from './TripDetailsDrawer'
 import { get, del } from '../../lib/api'
@@ -48,15 +46,9 @@ export const TripManagement: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
   const [tripToDelete, setTripToDelete] = useState<Trip | null>(null)
   const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
 
-  const {
-    isOpen: isFormOpen,
-    onOpen: onFormOpen,
-    onClose: onFormClose,
-  } = useDisclosure()
   const {
     isOpen: isDeleteOpen,
     onOpen: onDeleteOpen,
@@ -90,17 +82,7 @@ export const TripManagement: React.FC = () => {
     }
   }, [user])
 
-  const handleCreateTrip = () => {
-    setSelectedTrip(null)
-    onFormOpen()
-  }
-
   const handleEditTrip = (trip: Trip) => {
-    setSelectedTrip(trip)
-    onFormOpen()
-  }
-
-  const handleViewDetails = (trip: Trip) => {
     setActiveTrip(trip)
     onDetailsOpen()
   }
@@ -124,11 +106,6 @@ export const TripManagement: React.FC = () => {
     }
   }
 
-  const handleFormSuccess = async () => {
-    onFormClose()
-    await fetchTrips()
-  }
-
   if (loading) {
     return (
       <Box textAlign="center" py={10}>
@@ -139,16 +116,9 @@ export const TripManagement: React.FC = () => {
 
   return (
     <Box>
-      <HStack justify="space-between" mb={6}>
-        <Heading size="lg">Trip Management</Heading>
-        <Button
-          colorScheme="blue"
-          leftIcon={<AddIcon />}
-          onClick={handleCreateTrip}
-        >
-          Add Trip
-        </Button>
-      </HStack>
+      <Heading size="lg" mb={6}>
+        Trip Management
+      </Heading>
 
       {error && (
         <Alert status="error" mb={4}>
@@ -205,12 +175,6 @@ export const TripManagement: React.FC = () => {
                   <Td>
                     <HStack spacing={2}>
                       <IconButton
-                        aria-label="View details"
-                        icon={<ViewIcon />}
-                        size="sm"
-                        onClick={() => handleViewDetails(trip)}
-                      />
-                      <IconButton
                         aria-label="Edit trip"
                         icon={<EditIcon />}
                         size="sm"
@@ -232,13 +196,6 @@ export const TripManagement: React.FC = () => {
           </Table>
         </TableContainer>
       )}
-
-      <TripForm
-        isOpen={isFormOpen}
-        onClose={onFormClose}
-        onSuccess={handleFormSuccess}
-        trip={selectedTrip}
-      />
 
       <ConfirmDialog
         isOpen={isDeleteOpen}

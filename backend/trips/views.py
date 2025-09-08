@@ -3,13 +3,20 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.core.mail import send_mail
+from django.db import models
 import json
 import random
 from faker import Faker
 from datetime import datetime, date, time
 from .models import Trip, TripStop
-from orders.models import Stop
+from orders.models import Stop, Order
 
+def get_orders_for_stop(stop):
+    """Get all orders that use this stop as pickup or delivery"""
+    orders = Order.objects.filter(
+        models.Q(pickup_stop=stop) | models.Q(delivery_stop=stop)
+    ).values('id', 'order_number', 'customer_name')
+    return list(orders)
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -48,7 +55,8 @@ class TripListCreateView(View):
                     'actual_arrival_datetime': trip_stop.actual_arrival_datetime.isoformat() if trip_stop.actual_arrival_datetime else None,
                     'actual_departure_datetime': trip_stop.actual_departure_datetime.isoformat() if trip_stop.actual_departure_datetime else None,
                     'notes': trip_stop.notes,
-                    'is_completed': trip_stop.is_completed
+                    'is_completed': trip_stop.is_completed,
+                    'orders': get_orders_for_stop(trip_stop.stop)
                 })
 
             data.append({
@@ -137,7 +145,8 @@ class TripDetailView(View):
                 'actual_arrival_datetime': trip_stop.actual_arrival_datetime.isoformat() if trip_stop.actual_arrival_datetime else None,
                 'actual_departure_datetime': trip_stop.actual_departure_datetime.isoformat() if trip_stop.actual_departure_datetime else None,
                 'notes': trip_stop.notes,
-                'is_completed': trip_stop.is_completed
+                'is_completed': trip_stop.is_completed,
+                'orders': get_orders_for_stop(trip_stop.stop)
             })
 
         return JsonResponse({

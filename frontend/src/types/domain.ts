@@ -77,6 +77,11 @@ export interface TripStop {
   actual_departure_datetime: string | null
   notes: string
   is_completed: boolean
+  orders?: Array<{
+    id: number
+    order_number: string
+    customer_name: string
+  }>
 }
 
 export interface Trip {
