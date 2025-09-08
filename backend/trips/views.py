@@ -12,11 +12,10 @@ from .models import Trip, TripStop
 from orders.models import Stop, Order
 
 def get_orders_for_stop(stop):
-    """Get all orders that use this stop as pickup or delivery"""
-    orders = Order.objects.filter(
-        models.Q(pickup_stop=stop) | models.Q(delivery_stop=stop)
-    ).values('id', 'order_number', 'customer_name')
-    return list(orders)
+    """Get the order that this stop belongs to"""
+    if stop.order:
+        return [{'id': stop.order.id, 'order_number': stop.order.order_number, 'customer_name': stop.order.customer_name}]
+    return []
 
 
 @method_decorator(csrf_exempt, name='dispatch')

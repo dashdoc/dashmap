@@ -4,10 +4,13 @@ from django.contrib.auth.models import User
 
 class Stop(models.Model):
     STOP_TYPES = [
+        ('pickup', 'Pickup'),
+        ('delivery', 'Delivery'),
         ('loading', 'Loading'),
         ('unloading', 'Unloading'),
     ]
 
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='stops', null=True, blank=True)
     name = models.CharField(max_length=200)
     address = models.TextField()
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -20,7 +23,7 @@ class Stop(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.stop_type})"
+        return f"{self.name} ({self.stop_type}) - {self.order.order_number}"
 
 
 class Order(models.Model):
@@ -46,9 +49,6 @@ class Order(models.Model):
     customer_email = models.EmailField(blank=True)
     customer_phone = models.CharField(max_length=20, blank=True)
 
-    # Stop References
-    pickup_stop = models.ForeignKey(Stop, related_name='pickup_orders', on_delete=models.PROTECT)
-    delivery_stop = models.ForeignKey(Stop, related_name='delivery_orders', on_delete=models.PROTECT)
 
     # Goods Information
     goods_description = models.TextField()
