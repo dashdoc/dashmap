@@ -45,7 +45,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     customer_email: '',
     customer_phone: '',
     pickup_stop: {
-      id: undefined,
+      id: undefined as number | undefined,
       name: '',
       address: '',
       contact_name: '',
@@ -53,7 +53,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       notes: '',
     },
     delivery_stop: {
-      id: undefined,
+      id: undefined as number | undefined,
       name: '',
       address: '',
       contact_name: '',
@@ -119,7 +119,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         customer_email: '',
         customer_phone: '',
         pickup_stop: {
-          id: undefined,
+          id: undefined as number | undefined,
           name: '',
           address: '',
           contact_name: '',
@@ -127,7 +127,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           notes: '',
         },
         delivery_stop: {
-          id: undefined,
+          id: undefined as number | undefined,
           name: '',
           address: '',
           contact_name: '',
@@ -158,7 +158,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         setFormData((prev) => ({
           ...prev,
           [field]: {
-            ...prev[field as keyof typeof prev],
+            ...(prev[field as keyof typeof prev] as Record<string, unknown>),
             [subField]: e.target.value,
           },
         }))

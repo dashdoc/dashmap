@@ -35,7 +35,7 @@ import {
 } from '@hello-pangea/dnd'
 import { Link as RouterLink } from 'react-router-dom'
 import { get, put, post, del } from '../../lib/api'
-import type { Trip, Stop, TripStop } from '../../types/domain'
+import type { Trip, Order, TripStop } from '../../types/domain'
 
 interface TripDetailsDrawerProps {
   isOpen: boolean
@@ -61,8 +61,12 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     notes: '',
   })
   const [tripStops, setTripStops] = useState<TripStop[]>([])
-  const [stops, setStops] = useState<Stop[]>([])
-  const [newStop, setNewStop] = useState({ stopId: '', time: '' })
+  const [orders, setOrders] = useState<Order[]>([])
+  const [newOrder, setNewOrder] = useState({
+    orderId: '',
+    stopType: 'pickup' as 'pickup' | 'delivery',
+    time: '',
+  })
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
@@ -87,21 +91,21 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     }
   }
 
-  const fetchStops = async () => {
+  const fetchAvailableOrders = async () => {
     try {
-      const data = await get<Stop[]>('/stops/')
-      setStops(data)
+      const data = await get<Order[]>('/orders/?available_for_trip=true')
+      setOrders(data)
     } catch (err) {
-      console.error('Error fetching stops:', err)
+      console.error('Error fetching orders:', err)
     }
   }
 
   useEffect(() => {
     if (isOpen && trip) {
       fetchTripDetails()
-      fetchStops()
+      fetchAvailableOrders()
       setError('')
-      setNewStop({ stopId: '', time: '' })
+      setNewOrder({ orderId: '', stopType: 'pickup', time: '' })
     }
   }, [isOpen, trip])
 
@@ -136,26 +140,46 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     }
   }
 
-  const handleAddStop = async () => {
-    if (!trip || !newStop.stopId || !newStop.time) return
+  const handleAddOrder = async () => {
+    if (!trip || !newOrder.orderId || !newOrder.time) return
     setIsAdding(true)
     setError('')
     try {
+      const selectedOrder = orders?.find(
+        (o) => o.id.toString() === newOrder.orderId
+      )
+      if (!selectedOrder) return
+
+      // Determine which stop to add based on the selection
+      const stop =
+        newOrder.stopType === 'pickup'
+          ? selectedOrder.pickup_stop
+          : selectedOrder.delivery_stop
+
       await post('/trip-stops/', {
         trip: trip.id,
-        stop: parseInt(newStop.stopId),
+        stop: stop.id,
         order: tripStops.length + 1,
-        planned_arrival_time: newStop.time,
+        planned_arrival_time: newOrder.time,
       })
+
+      // Update order status to assigned
+      await put(`/orders/${selectedOrder.id}/`, {
+        ...selectedOrder,
+        status: 'assigned',
+      })
+
       await fetchTripDetails()
-      setNewStop({ stopId: '', time: '' })
+      await fetchAvailableOrders() // Refresh to remove the now-assigned order
+      setNewOrder({ orderId: '', stopType: 'pickup', time: '' })
+
       // Notify the map to redraw the trip route
       if (onTripStopsChanged) {
         onTripStopsChanged()
       }
     } catch (err) {
-      console.error('Error adding stop:', err)
-      setError('Failed to add stop')
+      console.error('Error adding order:', err)
+      setError('Failed to add order')
     } finally {
       setIsAdding(false)
     }
@@ -236,9 +260,8 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     }
   }
 
-  const availableStops = stops.filter(
-    (s) => !tripStops.some((ts) => ts.stop.id === s.id)
-  )
+  // Orders are already filtered by the backend
+  const availableOrders = orders || []
 
   return (
     <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xl">
@@ -430,36 +453,84 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                 </DragDropContext>
               )}
 
-              <HStack mt={4} spacing={2}>
-                <Select
-                  placeholder="Select stop"
-                  value={newStop.stopId}
-                  onChange={(e) =>
-                    setNewStop((prev) => ({ ...prev, stopId: e.target.value }))
-                  }
-                >
-                  {availableStops.map((stop) => (
-                    <option key={stop.id} value={stop.id}>
-                      {stop.name} ({stop.stop_type})
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  type="time"
-                  value={newStop.time}
-                  onChange={(e) =>
-                    setNewStop((prev) => ({ ...prev, time: e.target.value }))
-                  }
-                />
-                <Button
-                  colorScheme="blue"
-                  onClick={handleAddStop}
-                  isLoading={isAdding}
-                  width="150px"
-                >
-                  Add Stop
-                </Button>
-              </HStack>
+              <VStack mt={4} spacing={3} align="stretch">
+                <HStack spacing={2}>
+                  <Select
+                    placeholder="Select order"
+                    value={newOrder.orderId}
+                    onChange={(e) =>
+                      setNewOrder((prev) => ({
+                        ...prev,
+                        orderId: e.target.value,
+                      }))
+                    }
+                    flex={2}
+                  >
+                    {availableOrders?.map((order) => (
+                      <option key={order.id} value={order.id}>
+                        {order.order_number} - {order.customer_name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    value={newOrder.stopType}
+                    onChange={(e) =>
+                      setNewOrder((prev) => ({
+                        ...prev,
+                        stopType: e.target.value as 'pickup' | 'delivery',
+                      }))
+                    }
+                    flex={1}
+                  >
+                    <option value="pickup">Pickup</option>
+                    <option value="delivery">Delivery</option>
+                  </Select>
+                </HStack>
+                <HStack spacing={2}>
+                  <Input
+                    type="time"
+                    value={newOrder.time}
+                    onChange={(e) =>
+                      setNewOrder((prev) => ({ ...prev, time: e.target.value }))
+                    }
+                    placeholder="Arrival time"
+                    flex={1}
+                  />
+                  <Button
+                    colorScheme="blue"
+                    onClick={handleAddOrder}
+                    isLoading={isAdding}
+                    width="150px"
+                  >
+                    Add to Trip
+                  </Button>
+                </HStack>
+                {newOrder.orderId && (
+                  <Box p={2} bg="gray.50" borderRadius="md" fontSize="sm">
+                    {(() => {
+                      const selectedOrder = orders?.find(
+                        (o) => o.id.toString() === newOrder.orderId
+                      )
+                      if (!selectedOrder) return null
+                      const stop =
+                        newOrder.stopType === 'pickup'
+                          ? selectedOrder.pickup_stop
+                          : selectedOrder.delivery_stop
+                      return (
+                        <Text>
+                          <Text as="span" fontWeight="medium">
+                            {newOrder.stopType === 'pickup'
+                              ? 'Pickup'
+                              : 'Delivery'}{' '}
+                            Location:
+                          </Text>{' '}
+                          {stop.name} - {stop.address}
+                        </Text>
+                      )
+                    })()}
+                  </Box>
+                )}
+              </VStack>
             </Box>
           </VStack>
         </DrawerBody>

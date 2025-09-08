@@ -200,6 +200,7 @@ All list endpoints return data in this format:
 
 ### List/Create Orders
 - **GET** `/api/orders/` - List all orders
+- **GET** `/api/orders/?available_for_trip=true` - List orders available for trip assignment (pending status, not already assigned to trips)
 - **POST** `/api/orders/` - Create new order
 
 ### Order Details

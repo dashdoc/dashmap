@@ -12,6 +12,15 @@ from .models import Stop, Order
 class OrderListCreateView(View):
     def get(self, request):
         orders = Order.objects.prefetch_related('stops').all()
+
+        # Filter for orders available for trip assignment
+        if request.GET.get('available_for_trip') == 'true':
+            # Only include orders with status 'pending' that don't have stops assigned to trips
+            from trips.models import TripStop
+            orders = orders.filter(status='pending')
+            # Exclude orders whose stops are already in trip_stops
+            assigned_stop_ids = TripStop.objects.values_list('stop_id', flat=True)
+            orders = orders.exclude(stops__id__in=assigned_stop_ids)
         data = []
         for order in orders:
             stops = list(order.stops.all())
@@ -371,184 +380,6 @@ class GenerateFakeOrdersView(View):
             return JsonResponse({
                 'message': f'Successfully created {num_orders} new orders',
                 'created_orders': created_orders
-            }, status=201)
-
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class StopListCreateView(View):
-    def get(self, request):
-        stops = Stop.objects.all()
-        data = []
-        for stop in stops:
-            data.append({
-                'id': stop.id,
-                'name': stop.name,
-                'address': stop.address,
-                'latitude': str(stop.latitude) if stop.latitude else None,
-                'longitude': str(stop.longitude) if stop.longitude else None,
-                'stop_type': stop.stop_type,
-                'contact_name': stop.contact_name,
-                'contact_phone': stop.contact_phone,
-                'notes': stop.notes,
-                'created_at': stop.created_at.isoformat(),
-                'updated_at': stop.updated_at.isoformat()
-            })
-        return JsonResponse({'results': data})
-
-    def post(self, request):
-        try:
-            data = json.loads(request.body)
-            stop = Stop.objects.create(
-                name=data['name'],
-                address=data['address'],
-                latitude=data.get('latitude'),
-                longitude=data.get('longitude'),
-                stop_type=data['stop_type'],
-                contact_name=data.get('contact_name', ''),
-                contact_phone=data.get('contact_phone', ''),
-                notes=data.get('notes', ''),
-                order_id=data.get('order') if data.get('order') else None
-            )
-
-            return JsonResponse({
-                'id': stop.id,
-                'name': stop.name,
-                'address': stop.address,
-                'latitude': str(stop.latitude) if stop.latitude else None,
-                'longitude': str(stop.longitude) if stop.longitude else None,
-                'stop_type': stop.stop_type,
-                'contact_name': stop.contact_name,
-                'contact_phone': stop.contact_phone,
-                'notes': stop.notes,
-                'created_at': stop.created_at.isoformat(),
-                'updated_at': stop.updated_at.isoformat()
-            }, status=201)
-        except (KeyError, json.JSONDecodeError, ValueError) as e:
-            return JsonResponse({'error': 'Invalid data'}, status=400)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class StopDetailView(View):
-    def get_object(self, pk):
-        try:
-            return Stop.objects.get(pk=pk)
-        except Stop.DoesNotExist:
-            return None
-
-    def get(self, request, pk):
-        stop = self.get_object(pk)
-        if not stop:
-            return JsonResponse({'error': 'Stop not found'}, status=404)
-
-        return JsonResponse({
-            'id': stop.id,
-            'name': stop.name,
-            'address': stop.address,
-            'latitude': str(stop.latitude) if stop.latitude else None,
-            'longitude': str(stop.longitude) if stop.longitude else None,
-            'stop_type': stop.stop_type,
-            'contact_name': stop.contact_name,
-            'contact_phone': stop.contact_phone,
-            'notes': stop.notes,
-            'created_at': stop.created_at.isoformat(),
-            'updated_at': stop.updated_at.isoformat()
-        })
-
-    def put(self, request, pk):
-        stop = self.get_object(pk)
-        if not stop:
-            return JsonResponse({'error': 'Stop not found'}, status=404)
-
-        try:
-            data = json.loads(request.body)
-            stop.name = data.get('name', stop.name)
-            stop.address = data.get('address', stop.address)
-            stop.latitude = data.get('latitude', stop.latitude)
-            stop.longitude = data.get('longitude', stop.longitude)
-            stop.stop_type = data.get('stop_type', stop.stop_type)
-            stop.contact_name = data.get('contact_name', stop.contact_name)
-            stop.contact_phone = data.get('contact_phone', stop.contact_phone)
-            stop.notes = data.get('notes', stop.notes)
-            if 'order' in data:
-                stop.order_id = data['order'] if data['order'] else None
-
-            stop.save()
-
-            return JsonResponse({
-                'id': stop.id,
-                'name': stop.name,
-                'address': stop.address,
-                'latitude': str(stop.latitude) if stop.latitude else None,
-                'longitude': str(stop.longitude) if stop.longitude else None,
-                'stop_type': stop.stop_type,
-                'contact_name': stop.contact_name,
-                'contact_phone': stop.contact_phone,
-                'notes': stop.notes,
-                'created_at': stop.created_at.isoformat(),
-                'updated_at': stop.updated_at.isoformat()
-            })
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
-    def delete(self, request, pk):
-        stop = self.get_object(pk)
-        if not stop:
-            return JsonResponse({'error': 'Stop not found'}, status=404)
-
-        stop.delete()
-        return JsonResponse({}, status=204)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class GenerateFakeStopsView(View):
-    def post(self, request):
-        """Generate random stops with faker data"""
-        try:
-            fake = Faker(['fr_FR', 'en_US', 'de_DE', 'it_IT', 'es_ES'])
-
-            # Generate 3-8 random stops
-            num_stops = random.randint(3, 8)
-            created_stops = []
-
-            stop_types = ['loading', 'unloading']
-
-            for i in range(num_stops):
-                coords = fake.local_latlng(country_code='FR')
-
-                # Generate address with proper comma-separated format
-                address = f"{fake.street_address()}, {fake.city()}, {fake.state()} {fake.postcode()}"
-
-                stop = Stop.objects.create(
-                    name=f"{fake.company()} {random.choice(['Warehouse', 'Distribution Center', 'Loading Dock', 'Supply Hub'])}",
-                    address=address,
-                    latitude=coords[0],
-                    longitude=coords[1],
-                    stop_type=random.choice(stop_types),
-                    contact_name=fake.name(),
-                    contact_phone=fake.phone_number()[:15],  # Truncate to 15 chars max
-                    notes=fake.sentence() if random.choice([True, False]) else ""
-                )
-
-                created_stops.append({
-                    'id': stop.id,
-                    'name': stop.name,
-                    'address': stop.address,
-                    'latitude': str(stop.latitude),
-                    'longitude': str(stop.longitude),
-                    'stop_type': stop.stop_type,
-                    'contact_name': stop.contact_name,
-                    'contact_phone': stop.contact_phone,
-                    'notes': stop.notes,
-                    'created_at': stop.created_at.isoformat(),
-                    'updated_at': stop.updated_at.isoformat()
-                })
-
-            return JsonResponse({
-                'message': f'Successfully created {num_stops} new stops',
-                'created_stops': created_stops
             }, status=201)
 
         except Exception as e:
