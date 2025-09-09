@@ -284,6 +284,7 @@ All list endpoints return data in this format:
 
 ### Trip Actions
 - **POST** `/api/trips/{id}/notify-driver/` - Send email to driver
+- **POST** `/api/trips/{id}/add-order/` - Add complete order (pickup + delivery) to trip
 
 **Trip Object (List View):**
 ```json
@@ -376,10 +377,9 @@ Includes all above fields plus:
 
 ## Trip Stops
 
-### List/Create Trip Stops
+### List Trip Stops
 - **GET** `/api/trip-stops/` - List all trip stops
 - **GET** `/api/trip-stops/?trip={id}` - Filter by trip
-- **POST** `/api/trip-stops/` - Create new trip stop
 
 ### Trip Stop Details
 - **GET** `/api/trip-stops/{id}/` - Get trip stop details
@@ -432,6 +432,70 @@ When creating a trip stop with an order that already exists, the system automati
 Example: If a trip has stops with orders [1, 2, 3] and you create a new stop with order=2, the result will be:
 - New stop: order=2
 - Existing stops: orders [1, 3, 4] (original order=2 and order=3 are shifted up)
+
+#### Order Completeness Validation
+
+**Business Rule: Complete Order Journeys**
+Trips must contain complete order journeys (both pickup and delivery stops). This ensures you can always deliver what you picked up.
+
+**Validation Rules:**
+- When adding a stop to a trip that belongs to an order, the corresponding pickup/delivery stop must also be in the trip
+- Adding a pickup stop without its delivery stop will result in a 400 error
+- Adding a delivery stop without its pickup stop will result in a 400 error
+- Stops without orders (standalone stops) are allowed without restrictions
+- Orders must have both pickup and delivery stops defined to be usable in trips
+
+**Error Response Example:**
+```json
+{
+  "error": "Cannot add delivery stop for order ORD-2024-0001 without also including its pickup stop. Trips must contain complete order journeys (both pickup and delivery)."
+}
+```
+
+**Recommended Workflow:**
+1. Ensure orders have both pickup and delivery stops before trip assignment
+2. Use **POST** `/api/trips/{id}/add-order/` to add complete orders to trips
+3. Individual trip stops can only be viewed/updated via GET/PUT operations
+
+**Adding Complete Orders to Trips:**
+**POST** `/api/trips/{id}/add-order/`
+
+Request:
+```json
+{
+  "order": 1,
+  "pickup_time": "09:00:00",
+  "delivery_time": "14:00:00",
+  "notes": "Handle with care"
+}
+```
+
+Response:
+```json
+{
+  "message": "Successfully added order ORD-2024-0001 to trip",
+  "pickup_trip_stop": {
+    "id": 15,
+    "order": 3,
+    "planned_arrival_time": "09:00:00",
+    "stop": {
+      "id": 10,
+      "name": "Warehouse A",
+      "stop_type": "pickup"
+    }
+  },
+  "delivery_trip_stop": {
+    "id": 16,
+    "order": 4,
+    "planned_arrival_time": "14:00:00",
+    "stop": {
+      "id": 11,
+      "name": "Customer Site B",
+      "stop_type": "delivery"
+    }
+  }
+}
+```
 
 **Deleting Trip Stops:**
 When a trip stop is deleted, remaining stops with higher order numbers are automatically shifted down to close gaps and maintain consecutive ordering.

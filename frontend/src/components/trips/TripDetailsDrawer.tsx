@@ -65,8 +65,8 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   const [orders, setOrders] = useState<Order[]>([])
   const [newOrder, setNewOrder] = useState({
     orderId: '',
-    stopType: 'pickup' as 'pickup' | 'delivery',
-    time: '',
+    pickupTime: '',
+    deliveryTime: '',
   })
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -106,7 +106,7 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       fetchTripDetails()
       fetchAvailableOrders()
       setError('')
-      setNewOrder({ orderId: '', stopType: 'pickup', time: '' })
+      setNewOrder({ orderId: '', pickupTime: '', deliveryTime: '' })
     }
   }, [isOpen, trip])
 
@@ -142,7 +142,13 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
   }
 
   const handleAddOrder = async () => {
-    if (!trip || !newOrder.orderId || !newOrder.time) return
+    if (
+      !trip ||
+      !newOrder.orderId ||
+      !newOrder.pickupTime ||
+      !newOrder.deliveryTime
+    )
+      return
     setIsAdding(true)
     setError('')
     try {
@@ -151,17 +157,11 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       )
       if (!selectedOrder) return
 
-      // Determine which stop to add based on the selection
-      const stop =
-        newOrder.stopType === 'pickup'
-          ? selectedOrder.pickup_stop
-          : selectedOrder.delivery_stop
-
-      await post('/trip-stops/', {
-        trip: trip.id,
-        stop: stop.id,
-        order: tripStops.length + 1,
-        planned_arrival_time: newOrder.time,
+      // Use the new add-order endpoint to add both pickup and delivery stops
+      await post(`/trips/${trip.id}/add-order/`, {
+        order: parseInt(newOrder.orderId),
+        pickup_time: newOrder.pickupTime,
+        delivery_time: newOrder.deliveryTime,
       })
 
       // Update order status to assigned
@@ -172,7 +172,15 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 
       await fetchTripDetails()
       await fetchAvailableOrders() // Refresh to remove the now-assigned order
-      setNewOrder({ orderId: '', stopType: 'pickup', time: '' })
+      setNewOrder({ orderId: '', pickupTime: '', deliveryTime: '' })
+
+      toast({
+        title: 'Order added',
+        description: `Complete order (pickup + delivery) added to trip.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
 
       // Notify the map to redraw the trip route
       if (onTripStopsChanged) {
@@ -180,7 +188,10 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       }
     } catch (err) {
       console.error('Error adding order:', err)
-      setError('Failed to add order')
+      const errorMessage =
+        (err as { response?: { data?: { error?: string } } }).response?.data
+          ?.error || 'Failed to add order'
+      setError(errorMessage)
     } finally {
       setIsAdding(false)
     }
@@ -446,78 +457,96 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
               )}
 
               <VStack mt={4} spacing={3} align="stretch">
+                <Select
+                  placeholder="Select order to add to trip"
+                  value={newOrder.orderId}
+                  onChange={(e) =>
+                    setNewOrder((prev) => ({
+                      ...prev,
+                      orderId: e.target.value,
+                    }))
+                  }
+                >
+                  {availableOrders?.map((order) => (
+                    <option key={order.id} value={order.id}>
+                      {order.order_number} - {order.customer_name}
+                    </option>
+                  ))}
+                </Select>
                 <HStack spacing={2}>
-                  <Select
-                    placeholder="Select order"
-                    value={newOrder.orderId}
-                    onChange={(e) =>
-                      setNewOrder((prev) => ({
-                        ...prev,
-                        orderId: e.target.value,
-                      }))
-                    }
-                    flex={2}
-                  >
-                    {availableOrders?.map((order) => (
-                      <option key={order.id} value={order.id}>
-                        {order.order_number} - {order.customer_name}
-                      </option>
-                    ))}
-                  </Select>
-                  <Select
-                    value={newOrder.stopType}
-                    onChange={(e) =>
-                      setNewOrder((prev) => ({
-                        ...prev,
-                        stopType: e.target.value as 'pickup' | 'delivery',
-                      }))
-                    }
-                    flex={1}
-                  >
-                    <option value="pickup">Pickup</option>
-                    <option value="delivery">Delivery</option>
-                  </Select>
-                </HStack>
-                <HStack spacing={2}>
-                  <Input
-                    type="time"
-                    value={newOrder.time}
-                    onChange={(e) =>
-                      setNewOrder((prev) => ({ ...prev, time: e.target.value }))
-                    }
-                    placeholder="Arrival time"
-                    flex={1}
-                  />
+                  <Box flex={1}>
+                    <Text fontSize="sm" color="gray.600" mb={1}>
+                      Pickup Time
+                    </Text>
+                    <Input
+                      type="time"
+                      value={newOrder.pickupTime}
+                      onChange={(e) =>
+                        setNewOrder((prev) => ({
+                          ...prev,
+                          pickupTime: e.target.value,
+                        }))
+                      }
+                      placeholder="Pickup time"
+                    />
+                  </Box>
+                  <Box flex={1}>
+                    <Text fontSize="sm" color="gray.600" mb={1}>
+                      Delivery Time
+                    </Text>
+                    <Input
+                      type="time"
+                      value={newOrder.deliveryTime}
+                      onChange={(e) =>
+                        setNewOrder((prev) => ({
+                          ...prev,
+                          deliveryTime: e.target.value,
+                        }))
+                      }
+                      placeholder="Delivery time"
+                    />
+                  </Box>
                   <Button
                     colorScheme="blue"
                     onClick={handleAddOrder}
                     isLoading={isAdding}
                     width="150px"
+                    mt={6}
                   >
-                    Add to Trip
+                    Add Order
                   </Button>
                 </HStack>
                 {newOrder.orderId && (
-                  <Box p={2} bg="gray.50" borderRadius="md" fontSize="sm">
+                  <Box p={3} bg="gray.50" borderRadius="md" fontSize="sm">
                     {(() => {
                       const selectedOrder = orders?.find(
                         (o) => o.id.toString() === newOrder.orderId
                       )
                       if (!selectedOrder) return null
-                      const stop =
-                        newOrder.stopType === 'pickup'
-                          ? selectedOrder.pickup_stop
-                          : selectedOrder.delivery_stop
                       return (
-                        <Text>
-                          <Text as="span" fontWeight="medium">
-                            {newOrder.stopType === 'pickup'
-                              ? 'Pickup'
-                              : 'Delivery'}{' '}
-                            Location:
-                          </Text>{' '}
-                          {stop.name} - {stop.address}
-                        </Text>
+                        <VStack spacing={2} align="stretch">
+                          <Text fontWeight="medium" color="blue.600">
+                            Order: {selectedOrder.order_number}
+                          </Text>
+                          <Box>
+                            <Text fontWeight="medium" color="green.600">
+                              📦 Pickup:
+                            </Text>
+                            <Text>
+                              {selectedOrder.pickup_stop?.name} -{' '}
+                              {selectedOrder.pickup_stop?.address}
+                            </Text>
+                          </Box>
+                          <Box>
+                            <Text fontWeight="medium" color="purple.600">
+                              🚚 Delivery:
+                            </Text>
+                            <Text>
+                              {selectedOrder.delivery_stop?.name} -{' '}
+                              {selectedOrder.delivery_stop?.address}
+                            </Text>
+                          </Box>
+                        </VStack>
                       )
                     })()}
                   </Box>

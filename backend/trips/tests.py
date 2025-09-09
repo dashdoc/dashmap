@@ -5,7 +5,16 @@ import json
 from datetime import date, time
 from companies.models import Company
 from vehicles.models import Vehicle
-from .models import Stop, Trip, TripStop
+from .models import Trip, TripStop
+from .services import (
+    validate_trip_stops_completeness,
+    validate_new_trip_stop,
+    get_incomplete_orders,
+    ensure_order_pair_in_trip,
+    add_order_to_trip,
+    TripValidationError
+)
+from orders.models import Stop, Order
 from test_utils import AuthenticatedTestMixin
 
 class TripsAPITestCase(TestCase, AuthenticatedTestMixin):
@@ -215,7 +224,8 @@ class TripStopAPITestCase(TripsAPITestCase):
         self.assertEqual(len(data['results']), 1)
         self.assertEqual(data['results'][0]['trip'], self.trip.id)
 
-    def test_create_trip_stop(self):
+    def test_post_trip_stop_not_allowed(self):
+        """Test that POST to trip-stops endpoint is no longer allowed"""
         new_trip_stop_data = {
             'trip': self.trip.id,
             'stop': self.stop2.id,
@@ -230,17 +240,8 @@ class TripStopAPITestCase(TripsAPITestCase):
             content_type='application/json'
         )
 
-        self.assertEqual(response.status_code, 201)
-        data = response.json()
-        self.assertEqual(data['order'], 2)
-        self.assertEqual(data['stop']['name'], 'Customer Site B')
-
-        # Verify coordinates are included in response
-        stop_data = data['stop']
-        self.assertIn('latitude', stop_data)
-        self.assertIn('longitude', stop_data)
-        self.assertEqual(stop_data['latitude'], '40.712776')
-        self.assertEqual(stop_data['longitude'], '-74.005974')
+        # POST should return 405 Method Not Allowed
+        self.assertEqual(response.status_code, 405)
 
     def test_update_trip_stop(self):
         updated_data = {
@@ -267,177 +268,254 @@ class TripStopAPITestCase(TripsAPITestCase):
         self.assertFalse(TripStop.objects.filter(id=self.trip_stop.id).exists())
 
 
-class TripStopOrderConstraintTestCase(TripsAPITestCase):
+
+
+class TripValidationServiceTestCase(TestCase):
+    """Test cases for the trip validation service functions"""
+
     def setUp(self):
-        super().setUp()
-        # Create additional stops for testing
-        self.stop3 = Stop.objects.create(
-            name='Middle Stop',
-            address='300 Middle Ave',
-            latitude=39.9526,
-            longitude=-75.1652,
-            stop_type='unloading',
-            contact_name='Middle Contact',
-            contact_phone='555-0003'
+        # Create test data
+        self.company = Company.objects.create(
+            name='Test Company',
+            address='123 Test St'
         )
 
-        # Create a trip with multiple ordered stops
-        self.trip_stop2 = TripStop.objects.create(
+        self.user = User.objects.create_user(
+            username='dispatcher',
+            email='dispatcher@test.com',
+            first_name='John',
+            last_name='Dispatcher'
+        )
+
+        self.vehicle = Vehicle.objects.create(
+            company=self.company,
+            license_plate='ABC123',
+            make='Ford',
+            model='Transit',
+            year=2023,
+            capacity=2.5,
+            driver_name='Driver Joe',
+            driver_email='driver@test.com',
+            driver_phone='555-1234'
+        )
+
+        self.trip = Trip.objects.create(
+            vehicle=self.vehicle,
+            dispatcher=self.user,
+            name='Test Trip',
+            status='draft',
+            planned_start_date=date.today(),
+            planned_start_time=time(9, 0)
+        )
+
+        # Create a complete order with pickup and delivery stops
+        self.order = Order.objects.create(
+            customer_name='Test Customer',
+            customer_company='Test Corp',
+            customer_email='customer@test.com',
+            goods_description='Test goods',
+            goods_weight=100.0,
+            goods_volume=5.0
+        )
+
+        self.pickup_stop = Stop.objects.create(
+            order=self.order,
+            name='Pickup Location',
+            address='100 Pickup St',
+            stop_type='pickup',
+            contact_name='Pickup Contact'
+        )
+
+        self.delivery_stop = Stop.objects.create(
+            order=self.order,
+            name='Delivery Location',
+            address='200 Delivery Ave',
+            stop_type='delivery',
+            contact_name='Delivery Contact'
+        )
+
+        # Create an incomplete order (only pickup)
+        self.incomplete_order = Order.objects.create(
+            customer_name='Incomplete Customer',
+            customer_company='Incomplete Corp',
+            goods_description='Incomplete goods'
+        )
+
+        self.incomplete_pickup = Stop.objects.create(
+            order=self.incomplete_order,
+            name='Incomplete Pickup',
+            address='300 Incomplete St',
+            stop_type='pickup',
+            contact_name='Incomplete Contact'
+        )
+
+    def test_validate_new_trip_stop_success_with_paired_stop_in_trip(self):
+        """Test that validation passes when paired stop is already in the trip"""
+        # Add pickup stop to trip first (skip validation for test setup)
+        pickup_trip_stop = TripStop(
             trip=self.trip,
-            stop=self.stop2,
-            order=2,
-            planned_arrival_time=time(10, 0),
-            notes='Second stop'
+            stop=self.pickup_stop,
+            order=1,
+            planned_arrival_time=time(10, 0)
+        )
+        pickup_trip_stop.save(skip_validation=True)
+
+        # Adding delivery stop should succeed since pickup is already in trip
+        try:
+            validate_new_trip_stop(self.trip, self.delivery_stop)
+        except TripValidationError:
+            self.fail("validate_new_trip_stop raised TripValidationError unexpectedly")
+
+    def test_validate_new_trip_stop_fails_without_paired_stop(self):
+        """Test that validation fails when paired stop is not in the trip"""
+        # Try to add delivery stop without pickup stop in trip
+        with self.assertRaises(TripValidationError) as context:
+            validate_new_trip_stop(self.trip, self.delivery_stop)
+
+        self.assertIn("without also including its pickup stop", str(context.exception))
+
+    def test_validate_new_trip_stop_allows_stops_without_orders(self):
+        """Test that stops without orders are allowed"""
+        # Create a stop without an order
+        standalone_stop = Stop.objects.create(
+            name='Standalone Stop',
+            address='400 Standalone St',
+            stop_type='pickup',
+            contact_name='Standalone Contact'
         )
 
-        self.trip_stop3 = TripStop.objects.create(
+        # Should not raise an exception
+        try:
+            validate_new_trip_stop(self.trip, standalone_stop)
+        except TripValidationError:
+            self.fail("validate_new_trip_stop should allow stops without orders")
+
+    def test_validate_new_trip_stop_fails_incomplete_order(self):
+        """Test that validation fails for orders without paired stops"""
+        with self.assertRaises(TripValidationError) as context:
+            validate_new_trip_stop(self.trip, self.incomplete_pickup)
+
+        self.assertIn("does not have a delivery stop", str(context.exception))
+
+    def test_get_incomplete_orders_empty_trip(self):
+        """Test get_incomplete_orders returns empty list for trip without stops"""
+        incomplete = get_incomplete_orders(self.trip)
+        self.assertEqual(len(incomplete), 0)
+
+    def test_get_incomplete_orders_with_complete_order(self):
+        """Test get_incomplete_orders when trip has complete orders"""
+        # Add complete order to trip
+        add_order_to_trip(
             trip=self.trip,
-            stop=self.stop3,
-            order=3,
-            planned_arrival_time=time(11, 0),
-            notes='Third stop'
+            order=self.order,
+            pickup_time=time(10, 0),
+            delivery_time=time(11, 0)
         )
 
-    def test_delete_middle_stop_breaks_order_constraint(self):
-        """Test that deleting a middle stop and adding a new one fails due to order constraint"""
-        # Verify initial state - should have 3 stops with orders 1, 2, 3
-        trip_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
-        self.assertEqual(trip_stops.count(), 3)
-        self.assertEqual([ts.order for ts in trip_stops], [1, 2, 3])
+        incomplete = get_incomplete_orders(self.trip)
+        self.assertEqual(len(incomplete), 0)
 
-        # Delete the middle stop (order=2)
-        response = self.authenticated_request('DELETE', f'/api/trip-stops/{self.trip_stop2.id}/')
-        self.assertEqual(response.status_code, 204)
+    def test_get_incomplete_orders_with_incomplete_order(self):
+        """Test get_incomplete_orders when trip has incomplete orders"""
+        # Add only pickup stop (skip validation for test setup)
+        pickup_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.pickup_stop,
+            order=1,
+            planned_arrival_time=time(10, 0)
+        )
+        pickup_trip_stop.save(skip_validation=True)
 
-        # Verify deletion
-        self.assertFalse(TripStop.objects.filter(id=self.trip_stop2.id).exists())
+        incomplete = get_incomplete_orders(self.trip)
+        self.assertEqual(len(incomplete), 1)
+        self.assertEqual(incomplete[0], self.order)
 
-        # Now we have stops with orders [1, 3], but trying to add order=2 should work
-        # This currently fails due to the unique constraint bug
-        new_stop = Stop.objects.create(
-            name='New Middle Stop',
-            address='250 New Middle St',
-            stop_type='loading'
+    def test_validate_trip_stops_completeness_success(self):
+        """Test validate_trip_stops_completeness passes for complete trip"""
+        # Add complete order to trip
+        add_order_to_trip(
+            trip=self.trip,
+            order=self.order,
+            pickup_time=time(10, 0),
+            delivery_time=time(11, 0)
         )
 
-        new_trip_stop_data = {
-            'trip': self.trip.id,
-            'stop': new_stop.id,
-            'order': 2,  # This should be valid since order=2 was deleted
-            'planned_arrival_time': '10:30:00',
-            'notes': 'New middle stop'
-        }
+        try:
+            validate_trip_stops_completeness(self.trip)
+        except TripValidationError:
+            self.fail("validate_trip_stops_completeness raised TripValidationError unexpectedly")
 
-        # After the fix, this should work without any issues
-        response = self.authenticated_request('POST',
-            '/api/trip-stops/',
-            data=json.dumps(new_trip_stop_data),
-            content_type='application/json'
+    def test_validate_trip_stops_completeness_fails_incomplete(self):
+        """Test validate_trip_stops_completeness fails for incomplete trip"""
+        # Add only pickup stop (skip validation for test setup)
+        pickup_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.pickup_stop,
+            order=1,
+            planned_arrival_time=time(10, 0)
+        )
+        pickup_trip_stop.save(skip_validation=True)
+
+        with self.assertRaises(TripValidationError) as context:
+            validate_trip_stops_completeness(self.trip)
+
+        self.assertIn("contains incomplete orders", str(context.exception))
+        self.assertIn(self.order.order_number, str(context.exception))
+
+    def test_ensure_order_pair_in_trip_success(self):
+        """Test ensure_order_pair_in_trip returns both stops for complete order"""
+        result = ensure_order_pair_in_trip(self.trip, self.order)
+
+        self.assertEqual(result['pickup_stop'], self.pickup_stop)
+        self.assertEqual(result['delivery_stop'], self.delivery_stop)
+
+    def test_ensure_order_pair_in_trip_fails_incomplete(self):
+        """Test ensure_order_pair_in_trip fails for incomplete order"""
+        with self.assertRaises(TripValidationError) as context:
+            ensure_order_pair_in_trip(self.trip, self.incomplete_order)
+
+        self.assertIn("does not have a delivery stop", str(context.exception))
+
+    def test_add_order_to_trip_success(self):
+        """Test add_order_to_trip successfully adds both stops"""
+        result = add_order_to_trip(
+            trip=self.trip,
+            order=self.order,
+            pickup_time=time(10, 0),
+            delivery_time=time(11, 0),
+            notes="Test order"
         )
 
-        # Should succeed now that the bug is fixed
-        self.assertEqual(response.status_code, 201)
-        data = response.json()
-        self.assertEqual(data['order'], 2)
+        # Check that both trip stops were created
+        self.assertIn('pickup_trip_stop', result)
+        self.assertIn('delivery_trip_stop', result)
 
-        # Verify the trip now has the expected stops in order
-        trip_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
-        orders = [ts.order for ts in trip_stops]
-        # Should have orders [1, 2, 3] where order 2 is the new stop and order 3 remained unchanged
-        self.assertEqual(orders, [1, 2, 3])
+        pickup_ts = result['pickup_trip_stop']
+        delivery_ts = result['delivery_trip_stop']
 
-    def test_delete_last_stop_and_add_multiple_stops(self):
-        """Test deleting the last stop and adding multiple new stops"""
-        # Delete the last stop (order=3)
-        response = self.authenticated_request('DELETE', f'/api/trip-stops/{self.trip_stop3.id}/')
-        self.assertEqual(response.status_code, 204)
+        # Verify pickup stop
+        self.assertEqual(pickup_ts.trip, self.trip)
+        self.assertEqual(pickup_ts.stop, self.pickup_stop)
+        self.assertEqual(pickup_ts.order, 1)
+        self.assertEqual(pickup_ts.planned_arrival_time, time(10, 0))
 
-        # Try to add two new stops with orders 3 and 4
-        new_stop1 = Stop.objects.create(name='New Stop 1', address='400 New St', stop_type='loading')
-        new_stop2 = Stop.objects.create(name='New Stop 2', address='500 New St', stop_type='unloading')
+        # Verify delivery stop
+        self.assertEqual(delivery_ts.trip, self.trip)
+        self.assertEqual(delivery_ts.stop, self.delivery_stop)
+        self.assertEqual(delivery_ts.order, 2)
+        self.assertEqual(delivery_ts.planned_arrival_time, time(11, 0))
 
-        # Add first new stop
-        response1 = self.authenticated_request('POST', '/api/trip-stops/',
-            data=json.dumps({
-                'trip': self.trip.id,
-                'stop': new_stop1.id,
-                'order': 3,
-                'planned_arrival_time': '11:00:00'
-            }),
-            content_type='application/json'
-        )
-        self.assertEqual(response1.status_code, 201)
+        # Verify trip now has 2 stops
+        self.assertEqual(self.trip.trip_stops.count(), 2)
 
-        # Add second new stop
-        response2 = self.authenticated_request('POST', '/api/trip-stops/',
-            data=json.dumps({
-                'trip': self.trip.id,
-                'stop': new_stop2.id,
-                'order': 4,
-                'planned_arrival_time': '12:00:00'
-            }),
-            content_type='application/json'
-        )
-        self.assertEqual(response2.status_code, 201)
+    def test_add_order_to_trip_fails_incomplete(self):
+        """Test add_order_to_trip fails for incomplete order"""
+        with self.assertRaises(TripValidationError) as context:
+            add_order_to_trip(
+                trip=self.trip,
+                order=self.incomplete_order,
+                pickup_time=time(10, 0),
+                delivery_time=time(11, 0)
+            )
 
-    def test_order_constraint_with_gaps(self):
-        """Test that order constraint allows gaps in ordering"""
-        # Delete middle stop to create gap
-        self.trip_stop2.delete()
-
-        # Should be able to create stops with orders that skip numbers
-        new_stop = Stop.objects.create(name='Skip Order Stop', address='600 Skip St', stop_type='loading')
-
-        response = self.authenticated_request('POST', '/api/trip-stops/',
-            data=json.dumps({
-                'trip': self.trip.id,
-                'stop': new_stop.id,
-                'order': 5,  # Skip order 4
-                'planned_arrival_time': '13:00:00'
-            }),
-            content_type='application/json'
-        )
-        self.assertEqual(response.status_code, 201)
-
-        # Verify final order sequence
-        trip_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
-        orders = [ts.order for ts in trip_stops]
-        self.assertEqual(orders, [1, 3, 5])  # Should have gaps
-
-    def test_duplicate_order_constraint(self):
-        """Test that duplicate orders are properly handled by shifting existing stops"""
-        new_stop = Stop.objects.create(name='Duplicate Order Stop', address='700 Dup St', stop_type='loading')
-
-        # Verify initial state - should have 3 stops with orders 1, 2, 3
-        initial_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
-        initial_orders = [ts.order for ts in initial_stops]
-        self.assertEqual(initial_orders, [1, 2, 3])
-
-        # Try to create a stop with order=1 (already exists)
-        response = self.authenticated_request('POST', '/api/trip-stops/',
-            data=json.dumps({
-                'trip': self.trip.id,
-                'stop': new_stop.id,
-                'order': 1,  # This order already exists
-                'planned_arrival_time': '08:30:00'
-            }),
-            content_type='application/json'
-        )
-
-        # After fix, this should succeed by shifting existing stops
-        self.assertEqual(response.status_code, 201)
-        data = response.json()
-        self.assertEqual(data['order'], 1)  # New stop should get the requested order
-
-        # Verify that existing stops were shifted
-        all_stops = TripStop.objects.filter(trip=self.trip).order_by('order')
-        final_orders = [ts.order for ts in all_stops]
-        # Should now have orders [1, 2, 3, 4] where the new stop is at order 1
-        # and the original stops are shifted to 2, 3, 4
-        self.assertEqual(final_orders, [1, 2, 3, 4])
-        self.assertEqual(all_stops.count(), 4)
-
-        # Verify the new stop is at order 1
-        new_trip_stop = TripStop.objects.get(id=data['id'])
-        self.assertEqual(new_trip_stop.order, 1)
-        self.assertEqual(new_trip_stop.stop, new_stop)
+        self.assertIn("does not have a delivery stop", str(context.exception))

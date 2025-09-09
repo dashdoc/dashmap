@@ -42,5 +42,12 @@ class TripStop(models.Model):
         ordering = ['order']
         unique_together = ['trip', 'order']
 
+    def save(self, *args, skip_validation=False, **kwargs):
+        # Only validate for new TripStop instances (not updates) and when not explicitly skipped
+        if not self.pk and not skip_validation:
+            from .services import validate_new_trip_stop
+            validate_new_trip_stop(self.trip, self.stop)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.trip.name} - Stop {self.order}: {self.stop.name}"

@@ -7,6 +7,7 @@ from faker import Faker
 from companies.models import Company
 from vehicles.models import Vehicle
 from trips.models import Trip, TripStop
+from trips.services import get_orders_requiring_both_stops, add_order_to_trip
 from orders.models import Stop, Order
 from positions.models import Position
 from accounts.models import AuthToken, UserProfile
@@ -167,12 +168,14 @@ class Command(BaseCommand):
         self.stdout.write(f'Created {len(orders)} test orders with {len(all_stops)} stops')
 
 
-        # Create test trips
+        # Create test trips with complete pickup/delivery pairs
         self.stdout.write('Creating test trips...')
-        today = timezone.now().date()
 
         trips = []
         statuses = ['draft', 'planned', 'in_progress', 'completed']
+
+        # Get orders that have both pickup and delivery stops
+        complete_orders = get_orders_requiring_both_stops()
 
         for i in range(10):
             trip = Trip.objects.create(
@@ -185,23 +188,28 @@ class Command(BaseCommand):
                 notes=fake.sentence()
             )
 
-            # Add random stops to trip
-            num_stops = fake.random_int(min=2, max=4)
-            trip_stops = fake.random_elements(elements=all_stops, length=num_stops, unique=True)
+            # Add complete orders (pickup + delivery pairs) to trip
+            num_orders = fake.random_int(min=1, max=2)  # 1-2 complete orders per trip
+            selected_orders = fake.random_elements(elements=complete_orders, length=num_orders, unique=True)
 
-            for j, stop in enumerate(trip_stops):
-                arrival_time = fake.time()
-                TripStop.objects.create(
+            for order in selected_orders:
+                # Generate times - pickup first, delivery after
+                pickup_time = fake.time()
+                delivery_time = fake.time()
+                while delivery_time <= pickup_time:
+                    delivery_time = fake.time()
+
+                # Add the complete order to the trip
+                add_order_to_trip(
                     trip=trip,
-                    stop=stop,
-                    order=j + 1,
-                    planned_arrival_time=arrival_time,
-                    notes=f'Stop {j+1} of {num_stops}'
+                    order=order,
+                    pickup_time=pickup_time,
+                    delivery_time=delivery_time
                 )
 
             trips.append(trip)
 
-        self.stdout.write(f'Created {len(trips)} test trips')
+        self.stdout.write(f'Created {len(trips)} test trips with complete pickup/delivery pairs')
 
         # Create test positions for active vehicles
         self.stdout.write('Creating test position data...')
@@ -243,6 +251,6 @@ class Command(BaseCommand):
         self.stdout.write('\nTest data includes:')
         self.stdout.write('• Dashmove company with 20 realistic vehicles')
         self.stdout.write('• 15 orders with pickup and delivery stops (every stop belongs to an order)')
-        self.stdout.write('• 10 trips with random stops and statuses')
+        self.stdout.write('• 10 trips with complete pickup/delivery pairs (ensuring order integrity)')
         self.stdout.write('• 24 hours of position data for 10 vehicles')
         self.stdout.write('• All data generated using Faker with French localization')

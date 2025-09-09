@@ -1,3 +1,5 @@
+from django.db import transaction
+import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -9,6 +11,7 @@ import random
 from faker import Faker
 from datetime import datetime, date, time
 from .models import Trip, TripStop
+from .services import add_order_to_trip, TripValidationError
 from orders.models import Stop, Order
 
 
@@ -343,7 +346,7 @@ Stops:"""
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TripStopListCreateView(View):
+class TripStopListView(View):
     def get(self, request):
         trip_stops = TripStop.objects.select_related("trip", "stop").all()
 
@@ -383,77 +386,6 @@ class TripStopListCreateView(View):
             )
         return JsonResponse({"results": data})
 
-    def post(self, request):
-        try:
-            from django.db import transaction
-            from django.db.utils import IntegrityError
-
-            data = json.loads(request.body)
-            trip_id = data["trip"]
-            requested_order = data["order"]
-
-            with transaction.atomic():
-                # Check if the requested order already exists for this trip
-                existing_stop = TripStop.objects.filter(
-                    trip_id=trip_id, order=requested_order
-                ).first()
-
-                if existing_stop:
-                    # Shift existing stops to make room for the new stop
-                    stops_to_shift = TripStop.objects.filter(
-                        trip_id=trip_id, order__gte=requested_order
-                    ).order_by("order")
-
-                    # Shift orders up by 1 starting from the end to avoid conflicts
-                    for stop in reversed(list(stops_to_shift)):
-                        stop.order += 1
-                        stop.save()
-
-                # Create the new trip stop
-                trip_stop = TripStop.objects.create(
-                    trip_id=trip_id,
-                    stop_id=data["stop"],
-                    order=requested_order,
-                    planned_arrival_time=data["planned_arrival_time"],
-                    notes=data.get("notes", ""),
-                )
-
-            trip_stop.refresh_from_db()
-            return JsonResponse(
-                {
-                    "id": trip_stop.id,
-                    "trip": trip_stop.trip.id,
-                    "stop": {
-                        "id": trip_stop.stop.id,
-                        "name": trip_stop.stop.name,
-                        "address": trip_stop.stop.address,
-                        "latitude": str(trip_stop.stop.latitude)
-                        if trip_stop.stop.latitude
-                        else None,
-                        "longitude": str(trip_stop.stop.longitude)
-                        if trip_stop.stop.longitude
-                        else None,
-                        "stop_type": trip_stop.stop.stop_type,
-                    },
-                    "order": trip_stop.order,
-                    "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
-                    "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
-                    if trip_stop.actual_arrival_datetime
-                    else None,
-                    "actual_departure_datetime": trip_stop.actual_departure_datetime.isoformat()
-                    if trip_stop.actual_departure_datetime
-                    else None,
-                    "notes": trip_stop.notes,
-                    "is_completed": trip_stop.is_completed,
-                },
-                status=201,
-            )
-        except (KeyError, json.JSONDecodeError, ValueError) as e:
-            return JsonResponse({"error": "Invalid data"}, status=400)
-        except IntegrityError as e:
-            return JsonResponse(
-                {"error": "Order conflict - unable to create trip stop"}, status=400
-            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -573,9 +505,6 @@ class TripStopReorderView(View):
     def post(self, request, trip_pk):
         """Reorder trip stops for a given trip"""
         try:
-            from django.db import transaction
-            import logging
-
             logger = logging.getLogger(__name__)
 
             data = json.loads(request.body)
@@ -659,3 +588,66 @@ class TripStopReorderView(View):
             return JsonResponse({"error": "Invalid data format"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class TripAddOrderView(View):
+    """Add a complete order (pickup + delivery) to a trip"""
+
+    def post(self, request, trip_pk):
+        try:
+            from datetime import time as datetime_time
+
+            data = json.loads(request.body)
+            trip = Trip.objects.get(pk=trip_pk)
+            order = Order.objects.get(pk=data['order'])
+
+            # Convert string times to time objects
+            pickup_time = datetime_time.fromisoformat(data['pickup_time'])
+            delivery_time = datetime_time.fromisoformat(data['delivery_time'])
+
+            result = add_order_to_trip(
+                trip=trip,
+                order=order,
+                pickup_time=pickup_time,
+                delivery_time=delivery_time,
+                notes=data.get('notes', '')
+            )
+
+            pickup_ts = result['pickup_trip_stop']
+            delivery_ts = result['delivery_trip_stop']
+
+            return JsonResponse({
+                'message': f'Successfully added order {order.order_number} to trip',
+                'pickup_trip_stop': {
+                    'id': pickup_ts.id,
+                    'order': pickup_ts.order,
+                    'planned_arrival_time': pickup_ts.planned_arrival_time.isoformat(),
+                    'stop': {
+                        'id': pickup_ts.stop.id,
+                        'name': pickup_ts.stop.name,
+                        'stop_type': pickup_ts.stop.stop_type
+                    }
+                },
+                'delivery_trip_stop': {
+                    'id': delivery_ts.id,
+                    'order': delivery_ts.order,
+                    'planned_arrival_time': delivery_ts.planned_arrival_time.isoformat(),
+                    'stop': {
+                        'id': delivery_ts.stop.id,
+                        'name': delivery_ts.stop.name,
+                        'stop_type': delivery_ts.stop.stop_type
+                    }
+                }
+            }, status=201)
+
+        except Trip.DoesNotExist:
+            return JsonResponse({'error': 'Trip not found'}, status=404)
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found'}, status=404)
+        except TripValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+        except (KeyError, json.JSONDecodeError, ValueError):
+            return JsonResponse({'error': 'Invalid data format'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
