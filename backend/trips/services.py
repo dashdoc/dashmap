@@ -194,6 +194,52 @@ def add_order_to_trip(trip: Trip, order: Order, pickup_time, delivery_time, note
     }
 
 
+def validate_pickup_before_delivery(trip: Trip) -> None:
+    """
+    Validate that for each order in a trip, pickup stops occur before delivery stops.
+
+    Args:
+        trip: The Trip instance to validate
+
+    Raises:
+        TripValidationError: If any order has delivery before pickup
+    """
+    trip_stops = trip.trip_stops.select_related('stop', 'stop__order').order_by('order')
+    orders_in_trip = {}
+
+    # Group stops by order and track their positions
+    for trip_stop in trip_stops:
+        if trip_stop.stop.order:
+            order = trip_stop.stop.order
+            if order.id not in orders_in_trip:
+                orders_in_trip[order.id] = {'order': order, 'stops': []}
+            orders_in_trip[order.id]['stops'].append({
+                'trip_stop': trip_stop,
+                'stop_type': trip_stop.stop.stop_type,
+                'order_position': trip_stop.order
+            })
+
+    # Check each order's pickup-delivery ordering
+    for order_data in orders_in_trip.values():
+        order = order_data['order']
+        stops = order_data['stops']
+
+        pickup_positions = [s['order_position'] for s in stops if s['stop_type'] == 'pickup']
+        delivery_positions = [s['order_position'] for s in stops if s['stop_type'] == 'delivery']
+
+        # If both pickup and delivery exist, pickup must come before delivery
+        if pickup_positions and delivery_positions:
+            min_pickup_pos = min(pickup_positions)
+            min_delivery_pos = min(delivery_positions)
+
+            if min_pickup_pos >= min_delivery_pos:
+                raise TripValidationError(
+                    f"Order {order.order_number} has delivery stop (position {min_delivery_pos}) "
+                    f"before or at same position as pickup stop (position {min_pickup_pos}). "
+                    f"Pickup must occur before delivery."
+                )
+
+
 def get_orders_requiring_both_stops() -> List[Order]:
     """
     Get all orders that have both pickup and delivery stops defined.

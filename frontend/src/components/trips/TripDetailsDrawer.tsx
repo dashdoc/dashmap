@@ -264,7 +264,18 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       }
     } catch (err) {
       console.error('Error reordering stops:', err)
-      setError('Failed to reorder stops')
+      const errorMessage =
+        (err as { response?: { data?: { error?: string } } }).response?.data
+          ?.error || 'Failed to reorder stops'
+
+      toast({
+        title: 'Error reordering stops',
+        description: errorMessage,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+
       // Revert to original order on error
       await fetchTripDetails()
     } finally {

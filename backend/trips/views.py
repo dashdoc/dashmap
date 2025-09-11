@@ -5,14 +5,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.core.mail import send_mail
-from django.db import models
 import json
-import random
-from faker import Faker
-from datetime import datetime, date, time
+from datetime import datetime
 from .models import Trip, TripStop
-from .services import add_order_to_trip, TripValidationError
-from orders.models import Stop, Order
+from .services import add_order_to_trip, validate_pickup_before_delivery, TripValidationError
+from orders.models import Order
+
+logger = logging.getLogger(__name__)
 
 
 def get_linked_order_for_stop(stop):
@@ -387,7 +386,6 @@ class TripStopListView(View):
         return JsonResponse({"results": data})
 
 
-
 @method_decorator(csrf_exempt, name="dispatch")
 class TripStopDetailView(View):
     def get_object(self, pk):
@@ -505,8 +503,6 @@ class TripStopReorderView(View):
     def post(self, request, trip_pk):
         """Reorder trip stops for a given trip"""
         try:
-            logger = logging.getLogger(__name__)
-
             data = json.loads(request.body)
             new_orders = data.get(
                 "orders", []
@@ -549,6 +545,9 @@ class TripStopReorderView(View):
                     trip_stop.order = order_item["order"]
                     trip_stop.save()
 
+                # Validate that pickups happen before deliveries
+                validate_pickup_before_delivery(trip)
+
             # Return updated trip stops
             updated_stops = TripStop.objects.filter(trip=trip).order_by("order")
             data = []
@@ -584,6 +583,8 @@ class TripStopReorderView(View):
 
             return JsonResponse({"results": data}, status=200)
 
+        except TripValidationError as e:
+            return JsonResponse({"error": str(e)}, status=400)
         except (KeyError, json.JSONDecodeError, ValueError) as e:
             return JsonResponse({"error": "Invalid data format"}, status=400)
         except Exception as e:
@@ -600,54 +601,57 @@ class TripAddOrderView(View):
 
             data = json.loads(request.body)
             trip = Trip.objects.get(pk=trip_pk)
-            order = Order.objects.get(pk=data['order'])
+            order = Order.objects.get(pk=data["order"])
 
             # Convert string times to time objects
-            pickup_time = datetime_time.fromisoformat(data['pickup_time'])
-            delivery_time = datetime_time.fromisoformat(data['delivery_time'])
+            pickup_time = datetime_time.fromisoformat(data["pickup_time"])
+            delivery_time = datetime_time.fromisoformat(data["delivery_time"])
 
             result = add_order_to_trip(
                 trip=trip,
                 order=order,
                 pickup_time=pickup_time,
                 delivery_time=delivery_time,
-                notes=data.get('notes', '')
+                notes=data.get("notes", ""),
             )
 
-            pickup_ts = result['pickup_trip_stop']
-            delivery_ts = result['delivery_trip_stop']
+            pickup_ts = result["pickup_trip_stop"]
+            delivery_ts = result["delivery_trip_stop"]
 
-            return JsonResponse({
-                'message': f'Successfully added order {order.order_number} to trip',
-                'pickup_trip_stop': {
-                    'id': pickup_ts.id,
-                    'order': pickup_ts.order,
-                    'planned_arrival_time': pickup_ts.planned_arrival_time.isoformat(),
-                    'stop': {
-                        'id': pickup_ts.stop.id,
-                        'name': pickup_ts.stop.name,
-                        'stop_type': pickup_ts.stop.stop_type
-                    }
+            return JsonResponse(
+                {
+                    "message": f"Successfully added order {order.order_number} to trip",
+                    "pickup_trip_stop": {
+                        "id": pickup_ts.id,
+                        "order": pickup_ts.order,
+                        "planned_arrival_time": pickup_ts.planned_arrival_time.isoformat(),
+                        "stop": {
+                            "id": pickup_ts.stop.id,
+                            "name": pickup_ts.stop.name,
+                            "stop_type": pickup_ts.stop.stop_type,
+                        },
+                    },
+                    "delivery_trip_stop": {
+                        "id": delivery_ts.id,
+                        "order": delivery_ts.order,
+                        "planned_arrival_time": delivery_ts.planned_arrival_time.isoformat(),
+                        "stop": {
+                            "id": delivery_ts.stop.id,
+                            "name": delivery_ts.stop.name,
+                            "stop_type": delivery_ts.stop.stop_type,
+                        },
+                    },
                 },
-                'delivery_trip_stop': {
-                    'id': delivery_ts.id,
-                    'order': delivery_ts.order,
-                    'planned_arrival_time': delivery_ts.planned_arrival_time.isoformat(),
-                    'stop': {
-                        'id': delivery_ts.stop.id,
-                        'name': delivery_ts.stop.name,
-                        'stop_type': delivery_ts.stop.stop_type
-                    }
-                }
-            }, status=201)
+                status=201,
+            )
 
         except Trip.DoesNotExist:
-            return JsonResponse({'error': 'Trip not found'}, status=404)
+            return JsonResponse({"error": "Trip not found"}, status=404)
         except Order.DoesNotExist:
-            return JsonResponse({'error': 'Order not found'}, status=404)
+            return JsonResponse({"error": "Order not found"}, status=404)
         except TripValidationError as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({"error": str(e)}, status=400)
         except (KeyError, json.JSONDecodeError, ValueError):
-            return JsonResponse({'error': 'Invalid data format'}, status=400)
+            return JsonResponse({"error": "Invalid data format"}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({"error": str(e)}, status=500)

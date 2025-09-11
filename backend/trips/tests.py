@@ -12,6 +12,7 @@ from .services import (
     get_incomplete_orders,
     ensure_order_pair_in_trip,
     add_order_to_trip,
+    validate_pickup_before_delivery,
     TripValidationError
 )
 from orders.models import Stop, Order
@@ -519,3 +520,258 @@ class TripValidationServiceTestCase(TestCase):
             )
 
         self.assertIn("does not have a delivery stop", str(context.exception))
+
+    def test_validate_pickup_before_delivery_success(self):
+        """Test validate_pickup_before_delivery passes when pickup comes before delivery"""
+        # Add complete order with pickup before delivery
+        add_order_to_trip(
+            trip=self.trip,
+            order=self.order,
+            pickup_time=time(10, 0),
+            delivery_time=time(11, 0)
+        )
+
+        # Should not raise an exception
+        try:
+            validate_pickup_before_delivery(self.trip)
+        except TripValidationError:
+            self.fail("validate_pickup_before_delivery raised TripValidationError unexpectedly")
+
+    def test_validate_pickup_before_delivery_fails_delivery_first(self):
+        """Test validate_pickup_before_delivery fails when delivery comes before pickup"""
+        # Manually create trip stops with delivery before pickup (skip validation)
+        delivery_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.delivery_stop,
+            order=1,  # Delivery at position 1
+            planned_arrival_time=time(10, 0)
+        )
+        delivery_trip_stop.save(skip_validation=True)
+
+        pickup_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.pickup_stop,
+            order=2,  # Pickup at position 2 (after delivery)
+            planned_arrival_time=time(11, 0)
+        )
+        pickup_trip_stop.save(skip_validation=True)
+
+        with self.assertRaises(TripValidationError) as context:
+            validate_pickup_before_delivery(self.trip)
+
+        self.assertIn("delivery stop (position 1) before or at same position as pickup stop (position 2)", str(context.exception))
+
+    def test_validate_pickup_before_delivery_fails_equal_position(self):
+        """Test validate_pickup_before_delivery correctly handles the >= condition"""
+        # Test that delivery at position 2 and pickup at position 3 fails (delivery comes first)
+        delivery_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.delivery_stop,
+            order=1,  # Delivery at position 1
+            planned_arrival_time=time(10, 0)
+        )
+        delivery_trip_stop.save(skip_validation=True)
+
+        pickup_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.pickup_stop,
+            order=2,  # Pickup at position 2 (after delivery)
+            planned_arrival_time=time(11, 0)
+        )
+        pickup_trip_stop.save(skip_validation=True)
+
+        with self.assertRaises(TripValidationError) as context:
+            validate_pickup_before_delivery(self.trip)
+
+        self.assertIn("delivery stop (position 1) before or at same position as pickup stop (position 2)", str(context.exception))
+
+    def test_validate_pickup_before_delivery_multiple_orders(self):
+        """Test validate_pickup_before_delivery with multiple orders"""
+        # Create second complete order
+        order2 = Order.objects.create(
+            customer_name='Customer 2',
+            customer_company='Corp 2',
+            goods_description='Goods 2'
+        )
+
+        pickup_stop2 = Stop.objects.create(
+            order=order2,
+            name='Pickup Location 2',
+            address='500 Pickup St',
+            stop_type='pickup',
+            contact_name='Pickup Contact 2'
+        )
+
+        delivery_stop2 = Stop.objects.create(
+            order=order2,
+            name='Delivery Location 2',
+            address='600 Delivery Ave',
+            stop_type='delivery',
+            contact_name='Delivery Contact 2'
+        )
+
+        # Add both orders correctly (pickup before delivery for each)
+        add_order_to_trip(
+            trip=self.trip,
+            order=self.order,
+            pickup_time=time(10, 0),
+            delivery_time=time(11, 0)
+        )
+
+        add_order_to_trip(
+            trip=self.trip,
+            order=order2,
+            pickup_time=time(12, 0),
+            delivery_time=time(13, 0)
+        )
+
+        # Should pass validation
+        try:
+            validate_pickup_before_delivery(self.trip)
+        except TripValidationError:
+            self.fail("validate_pickup_before_delivery should pass for multiple correct orders")
+
+    def test_validate_pickup_before_delivery_mixed_correct_incorrect(self):
+        """Test validate_pickup_before_delivery fails when one order is incorrect"""
+        # Create second complete order
+        order2 = Order.objects.create(
+            customer_name='Customer 2',
+            customer_company='Corp 2',
+            goods_description='Goods 2'
+        )
+
+        pickup_stop2 = Stop.objects.create(
+            order=order2,
+            name='Pickup Location 2',
+            address='500 Pickup St',
+            stop_type='pickup',
+            contact_name='Pickup Contact 2'
+        )
+
+        delivery_stop2 = Stop.objects.create(
+            order=order2,
+            name='Delivery Location 2',
+            address='600 Delivery Ave',
+            stop_type='delivery',
+            contact_name='Delivery Contact 2'
+        )
+
+        # Add first order correctly
+        add_order_to_trip(
+            trip=self.trip,
+            order=self.order,
+            pickup_time=time(10, 0),
+            delivery_time=time(11, 0)
+        )
+
+        # Add second order incorrectly (delivery before pickup) - skip validation
+        delivery_trip_stop2 = TripStop(
+            trip=self.trip,
+            stop=delivery_stop2,
+            order=3,  # Delivery at position 3
+            planned_arrival_time=time(12, 0)
+        )
+        delivery_trip_stop2.save(skip_validation=True)
+
+        pickup_trip_stop2 = TripStop(
+            trip=self.trip,
+            stop=pickup_stop2,
+            order=4,  # Pickup at position 4 (after delivery)
+            planned_arrival_time=time(13, 0)
+        )
+        pickup_trip_stop2.save(skip_validation=True)
+
+        with self.assertRaises(TripValidationError) as context:
+            validate_pickup_before_delivery(self.trip)
+
+        self.assertIn(order2.order_number, str(context.exception))
+        self.assertIn("delivery stop (position 3) before or at same position as pickup stop (position 4)", str(context.exception))
+
+    def test_validate_pickup_before_delivery_empty_trip(self):
+        """Test validate_pickup_before_delivery passes for empty trip"""
+        try:
+            validate_pickup_before_delivery(self.trip)
+        except TripValidationError:
+            self.fail("validate_pickup_before_delivery should pass for empty trip")
+
+    def test_validate_pickup_before_delivery_only_pickup(self):
+        """Test validate_pickup_before_delivery passes when order has only pickup in trip"""
+        # Add only pickup stop (skip validation)
+        pickup_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.pickup_stop,
+            order=1,
+            planned_arrival_time=time(10, 0)
+        )
+        pickup_trip_stop.save(skip_validation=True)
+
+        # Should pass (no delivery to compare against)
+        try:
+            validate_pickup_before_delivery(self.trip)
+        except TripValidationError:
+            self.fail("validate_pickup_before_delivery should pass when only pickup exists")
+
+    def test_validate_pickup_before_delivery_only_delivery(self):
+        """Test validate_pickup_before_delivery passes when order has only delivery in trip"""
+        # Add only delivery stop (skip validation)
+        delivery_trip_stop = TripStop(
+            trip=self.trip,
+            stop=self.delivery_stop,
+            order=1,
+            planned_arrival_time=time(10, 0)
+        )
+        delivery_trip_stop.save(skip_validation=True)
+
+        # Should pass (no pickup to compare against)
+        try:
+            validate_pickup_before_delivery(self.trip)
+        except TripValidationError:
+            self.fail("validate_pickup_before_delivery should pass when only delivery exists")
+
+    def test_reorder_stops_endpoint_validates_pickup_before_delivery(self):
+        """Test that reorder-stops endpoint validates pickup before delivery"""
+        # Set up order with pickup and delivery stops
+        pickup_ts = TripStop(
+            trip=self.trip,
+            stop=self.pickup_stop,
+            order=1,
+            planned_arrival_time=time(10, 0)
+        )
+        pickup_ts.save(skip_validation=True)
+
+        delivery_ts = TripStop(
+            trip=self.trip,
+            stop=self.delivery_stop,
+            order=2,
+            planned_arrival_time=time(11, 0)
+        )
+        delivery_ts.save(skip_validation=True)
+
+        from test_utils import AuthenticatedTestMixin
+        from django.test import Client
+        import json
+
+        # Try to reorder so delivery comes before pickup (should fail)
+        client = Client()
+        # Get token from authenticated test mixin
+        auth_mixin = AuthenticatedTestMixin()
+        auth_mixin.setUp_auth()
+
+        response = client.post(
+            f'/api/trips/{self.trip.id}/reorder-stops/',
+            data=json.dumps({
+                "orders": [
+                    {"id": delivery_ts.id, "order": 1},  # Delivery first
+                    {"id": pickup_ts.id, "order": 2}    # Pickup second
+                ]
+            }),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=f'Token {auth_mixin.token.key}'
+        )
+
+        # Should return 400 with validation error
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn('error', data)
+        self.assertIn('delivery stop', data['error'].lower())
+        self.assertIn('pickup', data['error'].lower())
