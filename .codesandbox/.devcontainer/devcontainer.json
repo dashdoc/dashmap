@@ -1,0 +1,32 @@
+{
+    "name": "node+python+uv (frontend/backend)",
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "features": {
+      "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+      "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+    },
+    "containerEnv": {
+      "UV_PROJECT_ENVIRONMENT": ".venv",
+      "UV_LINK_MODE": "copy"
+    },
+    "remoteEnv": {
+      "PATH": "${containerEnv:PATH}:/root/.local/bin"
+    },
+    "mounts": [
+      "source=uv-cache,type=volume,target=/root/.cache/uv",
+      "source=npm-cache,type=volume,target=/root/.npm"
+    ],
+    "postCreateCommand": "bash -lc '\nset -euo pipefail\n# Install uv\ncurl -LsSf https://astral.sh/uv/install.sh | sh\nexport PATH=\"$HOME/.local/bin:$PATH\"\n# Python deps in backend\nif [ -f backend/pyproject.toml ]; then (cd backend && uv sync --frozen || uv sync); fi\n# JS deps in frontend and backend (npm or yarn only)\nfor dir in frontend backend; do\n  if [ -f \"$dir/package.json\" ]; then\n    if [ -f \"$dir/package-lock.json\" ]; then (cd \"$dir\" && npm ci); \n    elif [ -f \"$dir/yarn.lock\" ]; then (cd \"$dir\" && corepack enable && yarn install --frozen-lockfile);\n    else (cd \"$dir\" && npm install);\n    fi\n  fi\ndone\n'",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-python.python",
+          "ms-python.vscode-pylance",
+          "charliermarsh.ruff",
+          "dbaeumer.vscode-eslint",
+          "esbenp.prettier-vscode"
+        ]
+      }
+    }
+  }
+  

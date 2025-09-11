@@ -1,0 +1,22 @@
+{
+  // These tasks will run in order when initializing your CodeSandbox project.
+  "setupTasks": [
+    {
+      "command": "cd frontend && npm install",
+      "name": "Install frontend deps"
+    },
+    {
+      "command": "cd backend && uv sync",
+      "name": "Install backend deps"
+    }
+  ],
+
+  // These tasks can be run from CodeSandbox. Running one will open a log in the app.
+  "tasks": {
+    "launchBackend": {
+      "name": "Launch backend",
+      "command": "cd backend && uv run python manage.py runserver",
+      "runAtStart": true
+    }
+  }
+}
