@@ -139,9 +139,9 @@ export const useMapLayers = (
       trips.forEach((trip) => {
         if (!trip.trip_stops || trip.trip_stops.length < 2) return
 
-        // Sort stops by order
+        // Sort stops by sequence
         const sortedStops = [...trip.trip_stops].sort(
-          (a, b) => a.order - b.order
+          (a, b) => a.sequence - b.sequence
         )
 
         // Filter stops with valid coordinates

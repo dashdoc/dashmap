@@ -237,15 +237,15 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
     try {
       setIsReordering(true)
 
-      // Create the orders array for the API call
-      const orders = reorderedStops.map((stop, index) => ({
+      // Create the sequences array for the API call
+      const sequences = reorderedStops.map((stop, index) => ({
         id: stop.id,
-        order: index + 1, // API expects 1-based ordering
+        sequence: index + 1, // API expects 1-based sequencing
       }))
 
       // Call the reorder API
       await post(`/trips/${trip.id}/reorder-stops/`, {
-        orders,
+        sequences,
       })
 
       // Refresh trip details to ensure we have the latest data

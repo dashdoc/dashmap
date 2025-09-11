@@ -71,7 +71,7 @@ export interface Order {
 export interface TripStop {
   id: number
   stop: Stop
-  order: number
+  sequence: number
   planned_arrival_time: string
   actual_arrival_datetime: string | null
   actual_departure_datetime: string | null

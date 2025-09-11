@@ -79,7 +79,7 @@ class TripsAPITestCase(TestCase, AuthenticatedTestMixin):
         self.trip_stop = TripStop.objects.create(
             trip=self.trip,
             stop=self.stop1,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(9, 0),
             notes='First stop notes'
         )
@@ -145,7 +145,7 @@ class TripAPITestCase(TripsAPITestCase):
         self.assertEqual(len(data['trip_stops']), 1)
 
         trip_stop_data = data['trip_stops'][0]
-        self.assertEqual(trip_stop_data['order'], 1)
+        self.assertEqual(trip_stop_data['sequence'], 1)
         self.assertEqual(trip_stop_data['stop']['name'], 'Loading Dock A')
 
         # Verify coordinates are included in nested stop data
@@ -230,7 +230,7 @@ class TripStopAPITestCase(TripsAPITestCase):
         new_trip_stop_data = {
             'trip': self.trip.id,
             'stop': self.stop2.id,
-            'order': 2,
+            'sequence': 2,
             'planned_arrival_time': '11:00:00',
             'notes': 'Second stop notes'
         }
@@ -356,7 +356,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(10, 0)
         )
         pickup_trip_stop.save(skip_validation=True)
@@ -422,7 +422,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(10, 0)
         )
         pickup_trip_stop.save(skip_validation=True)
@@ -452,7 +452,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(10, 0)
         )
         pickup_trip_stop.save(skip_validation=True)
@@ -497,13 +497,13 @@ class TripValidationServiceTestCase(TestCase):
         # Verify pickup stop
         self.assertEqual(pickup_ts.trip, self.trip)
         self.assertEqual(pickup_ts.stop, self.pickup_stop)
-        self.assertEqual(pickup_ts.order, 1)
+        self.assertEqual(pickup_ts.sequence, 1)
         self.assertEqual(pickup_ts.planned_arrival_time, time(10, 0))
 
         # Verify delivery stop
         self.assertEqual(delivery_ts.trip, self.trip)
         self.assertEqual(delivery_ts.stop, self.delivery_stop)
-        self.assertEqual(delivery_ts.order, 2)
+        self.assertEqual(delivery_ts.sequence, 2)
         self.assertEqual(delivery_ts.planned_arrival_time, time(11, 0))
 
         # Verify trip now has 2 stops
@@ -543,7 +543,7 @@ class TripValidationServiceTestCase(TestCase):
         delivery_trip_stop = TripStop(
             trip=self.trip,
             stop=self.delivery_stop,
-            order=1,  # Delivery at position 1
+            sequence=1,  # Delivery at position 1
             planned_arrival_time=time(10, 0)
         )
         delivery_trip_stop.save(skip_validation=True)
@@ -551,7 +551,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=2,  # Pickup at position 2 (after delivery)
+            sequence=2,  # Pickup at position 2 (after delivery)
             planned_arrival_time=time(11, 0)
         )
         pickup_trip_stop.save(skip_validation=True)
@@ -567,7 +567,7 @@ class TripValidationServiceTestCase(TestCase):
         delivery_trip_stop = TripStop(
             trip=self.trip,
             stop=self.delivery_stop,
-            order=1,  # Delivery at position 1
+            sequence=1,  # Delivery at position 1
             planned_arrival_time=time(10, 0)
         )
         delivery_trip_stop.save(skip_validation=True)
@@ -575,7 +575,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=2,  # Pickup at position 2 (after delivery)
+            sequence=2,  # Pickup at position 2 (after delivery)
             planned_arrival_time=time(11, 0)
         )
         pickup_trip_stop.save(skip_validation=True)
@@ -668,7 +668,7 @@ class TripValidationServiceTestCase(TestCase):
         delivery_trip_stop2 = TripStop(
             trip=self.trip,
             stop=delivery_stop2,
-            order=3,  # Delivery at position 3
+            sequence=3,  # Delivery at position 3
             planned_arrival_time=time(12, 0)
         )
         delivery_trip_stop2.save(skip_validation=True)
@@ -676,7 +676,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop2 = TripStop(
             trip=self.trip,
             stop=pickup_stop2,
-            order=4,  # Pickup at position 4 (after delivery)
+            sequence=4,  # Pickup at position 4 (after delivery)
             planned_arrival_time=time(13, 0)
         )
         pickup_trip_stop2.save(skip_validation=True)
@@ -700,7 +700,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_trip_stop = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(10, 0)
         )
         pickup_trip_stop.save(skip_validation=True)
@@ -717,7 +717,7 @@ class TripValidationServiceTestCase(TestCase):
         delivery_trip_stop = TripStop(
             trip=self.trip,
             stop=self.delivery_stop,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(10, 0)
         )
         delivery_trip_stop.save(skip_validation=True)
@@ -734,7 +734,7 @@ class TripValidationServiceTestCase(TestCase):
         pickup_ts = TripStop(
             trip=self.trip,
             stop=self.pickup_stop,
-            order=1,
+            sequence=1,
             planned_arrival_time=time(10, 0)
         )
         pickup_ts.save(skip_validation=True)
@@ -742,7 +742,7 @@ class TripValidationServiceTestCase(TestCase):
         delivery_ts = TripStop(
             trip=self.trip,
             stop=self.delivery_stop,
-            order=2,
+            sequence=2,
             planned_arrival_time=time(11, 0)
         )
         delivery_ts.save(skip_validation=True)
@@ -760,9 +760,9 @@ class TripValidationServiceTestCase(TestCase):
         response = client.post(
             f'/api/trips/{self.trip.id}/reorder-stops/',
             data=json.dumps({
-                "orders": [
-                    {"id": delivery_ts.id, "order": 1},  # Delivery first
-                    {"id": pickup_ts.id, "order": 2}    # Pickup second
+                "sequences": [
+                    {"id": delivery_ts.id, "sequence": 1},  # Delivery first
+                    {"id": pickup_ts.id, "sequence": 2}    # Pickup second
                 ]
             }),
             content_type='application/json',

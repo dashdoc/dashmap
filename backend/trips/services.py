@@ -161,19 +161,19 @@ def add_order_to_trip(trip: Trip, order: Order, pickup_time, delivery_time, note
     delivery_stop = order_stops['delivery_stop']
 
     with transaction.atomic():
-        # Get the next available order numbers for the trip
-        last_order = trip.trip_stops.aggregate(
-            max_order=models.Max('order')
-        )['max_order'] or 0
+        # Get the next available sequence numbers for the trip
+        last_sequence = trip.trip_stops.aggregate(
+            max_sequence=models.Max('sequence')
+        )['max_sequence'] or 0
 
-        pickup_order = last_order + 1
-        delivery_order = last_order + 2
+        pickup_sequence = last_sequence + 1
+        delivery_sequence = last_sequence + 2
 
         # Create both trip stops with validation disabled
         pickup_trip_stop = TripStop(
             trip=trip,
             stop=pickup_stop,
-            order=pickup_order,
+            sequence=pickup_sequence,
             planned_arrival_time=pickup_time,
             notes=notes or f'Pickup for {order.order_number}'
         )
@@ -182,7 +182,7 @@ def add_order_to_trip(trip: Trip, order: Order, pickup_time, delivery_time, note
         delivery_trip_stop = TripStop(
             trip=trip,
             stop=delivery_stop,
-            order=delivery_order,
+            sequence=delivery_sequence,
             planned_arrival_time=delivery_time,
             notes=notes or f'Delivery for {order.order_number}'
         )
@@ -204,7 +204,7 @@ def validate_pickup_before_delivery(trip: Trip) -> None:
     Raises:
         TripValidationError: If any order has delivery before pickup
     """
-    trip_stops = trip.trip_stops.select_related('stop', 'stop__order').order_by('order')
+    trip_stops = trip.trip_stops.select_related('stop', 'stop__order').order_by('sequence')
     orders_in_trip = {}
 
     # Group stops by order and track their positions
@@ -216,7 +216,7 @@ def validate_pickup_before_delivery(trip: Trip) -> None:
             orders_in_trip[order.id]['stops'].append({
                 'trip_stop': trip_stop,
                 'stop_type': trip_stop.stop.stop_type,
-                'order_position': trip_stop.order
+                'sequence_position': trip_stop.sequence
             })
 
     # Check each order's pickup-delivery ordering
@@ -224,8 +224,8 @@ def validate_pickup_before_delivery(trip: Trip) -> None:
         order = order_data['order']
         stops = order_data['stops']
 
-        pickup_positions = [s['order_position'] for s in stops if s['stop_type'] == 'pickup']
-        delivery_positions = [s['order_position'] for s in stops if s['stop_type'] == 'delivery']
+        pickup_positions = [s['sequence_position'] for s in stops if s['stop_type'] == 'pickup']
+        delivery_positions = [s['sequence_position'] for s in stops if s['stop_type'] == 'delivery']
 
         # If both pickup and delivery exist, pickup must come before delivery
         if pickup_positions and delivery_positions:
