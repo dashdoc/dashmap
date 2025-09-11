@@ -1,4 +1,3 @@
-from django.db import transaction
 import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -8,7 +7,12 @@ from django.core.mail import send_mail
 import json
 from datetime import datetime
 from .models import Trip, TripStop
-from .services import add_order_to_trip, validate_pickup_before_delivery, TripValidationError
+from .services import (
+    add_order_to_trip,
+    validate_pickup_before_delivery,
+    update_trip_stop_sequences,
+    TripValidationError,
+)
 from orders.models import Order
 
 logger = logging.getLogger(__name__)
@@ -504,8 +508,7 @@ class TripStopReorderView(View):
         """Reorder trip stops for a given trip"""
         try:
             data = json.loads(request.body)
-            # Support both 'orders' (legacy) and 'sequences' (new) parameter names
-            new_sequences = data.get("sequences") or data.get("orders", [])
+            new_sequences = data.get("sequences")
 
             logger.info(f"Reordering stops for trip {trip_pk}: {new_sequences}")
 
@@ -518,36 +521,12 @@ class TripStopReorderView(View):
             except Trip.DoesNotExist:
                 return JsonResponse({"error": "Trip not found"}, status=404)
 
-            with transaction.atomic():
-                # Validate that all provided stop IDs belong to this trip
-                provided_stop_ids = [item["id"] for item in new_sequences]
-                existing_stops = TripStop.objects.filter(
-                    trip=trip, id__in=provided_stop_ids
-                )
-
-                if len(existing_stops) != len(provided_stop_ids):
-                    return JsonResponse(
-                        {"error": "Some trip stops do not belong to this trip"},
-                        status=400,
-                    )
-
-                # First, set all orders to very high values to avoid constraint conflicts
-                # Use values starting from 10000 to avoid conflicts with existing orders
-                for i, sequence_item in enumerate(new_sequences):
-                    trip_stop = TripStop.objects.get(id=sequence_item["id"], trip=trip)
-                    trip_stop.sequence = 10000 + i  # Use high values temporarily
-                    trip_stop.save()
-
-                # Then set the final order values
-                for sequence_item in new_sequences:
-                    trip_stop = TripStop.objects.get(id=sequence_item["id"], trip=trip)
-                    # Support both 'sequence' (new) and 'order' (legacy) field names in data
-                    new_seq = sequence_item.get("sequence") or sequence_item.get("order")
-                    trip_stop.sequence = new_seq
-                    trip_stop.save()
-
-                # Validate that pickups happen before deliveries
+            # Update trip stop sequence
+            try:
+                update_trip_stop_sequences(trip, new_sequences)
                 validate_pickup_before_delivery(trip)
+            except TripValidationError as e:
+                return JsonResponse({"error": str(e)}, status=400)
 
             # Return updated trip stops
             updated_stops = TripStop.objects.filter(trip=trip).order_by("sequence")

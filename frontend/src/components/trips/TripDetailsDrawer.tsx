@@ -228,8 +228,8 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 
     // Create a copy of the trip stops array
     const reorderedStops = Array.from(tripStops)
-    const [removed] = reorderedStops.splice(sourceIndex, 1)
-    reorderedStops.splice(destinationIndex, 0, removed)
+    const removed = reorderedStops.splice(sourceIndex, 2)
+    reorderedStops.splice(destinationIndex, 0, removed[1])
 
     // Update local state immediately for better UX
     setTripStops(reorderedStops)
@@ -240,16 +240,14 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       // Create the sequences array for the API call
       const sequences = reorderedStops.map((stop, index) => ({
         id: stop.id,
-        sequence: index + 1, // API expects 1-based sequencing
+        sequence: index,
       }))
 
       // Call the reorder API
-      await post(`/trips/${trip.id}/reorder-stops/`, {
+      const stops: TripStop[] = await post(`/trips/${trip.id}/reorder-stops/`, {
         sequences,
       })
-
-      // Refresh trip details to ensure we have the latest data
-      await fetchTripDetails()
+      setTripStops(stops)
 
       toast({
         title: 'Stops reordered',
@@ -264,17 +262,6 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
       }
     } catch (err) {
       console.error('Error reordering stops:', err)
-      const errorMessage =
-        (err as { response?: { data?: { error?: string } } }).response?.data
-          ?.error || 'Failed to reorder stops'
-
-      toast({
-        title: 'Error reordering stops',
-        description: errorMessage,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
 
       // Revert to original order on error
       await fetchTripDetails()
