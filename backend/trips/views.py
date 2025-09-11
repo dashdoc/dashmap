@@ -46,7 +46,7 @@ class TripListCreateView(View):
         for trip in trips:
             # Include trip_stops data in list view to eliminate N+1 queries
             trip_stops = []
-            for trip_stop in trip.trip_stops.all().order_by("order"):
+            for trip_stop in trip.trip_stops.all().order_by("sequence"):
                 trip_stops.append(
                     {
                         "id": trip_stop.id,
@@ -65,7 +65,7 @@ class TripListCreateView(View):
                             "contact_phone": trip_stop.stop.contact_phone,
                             "notes": trip_stop.stop.notes,
                         },
-                        "order": trip_stop.order,
+                        "sequence": trip_stop.sequence,
                         "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
                         "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
                         if trip_stop.actual_arrival_datetime
@@ -164,7 +164,7 @@ class TripDetailView(View):
             return JsonResponse({"error": "Trip not found"}, status=404)
 
         trip_stops = []
-        for trip_stop in trip.trip_stops.all().order_by("order"):
+        for trip_stop in trip.trip_stops.all().order_by("sequence"):
             trip_stops.append(
                 {
                     "id": trip_stop.id,
@@ -183,7 +183,7 @@ class TripDetailView(View):
                         "contact_phone": trip_stop.stop.contact_phone,
                         "notes": trip_stop.stop.notes,
                     },
-                    "order": trip_stop.order,
+                    "sequence": trip_stop.sequence,
                     "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
                     "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
                     if trip_stop.actual_arrival_datetime
@@ -318,8 +318,8 @@ Start Time: {trip.planned_start_time}
 
 Stops:"""
 
-        for trip_stop in trip.trip_stops.all().order_by("order"):
-            message += f"\n{trip_stop.order}. {trip_stop.stop.name} ({trip_stop.stop.stop_type}) - {trip_stop.planned_arrival_time}"
+        for trip_stop in trip.trip_stops.all().order_by("sequence"):
+            message += f"\n{trip_stop.sequence}. {trip_stop.stop.name} ({trip_stop.stop.stop_type}) - {trip_stop.planned_arrival_time}"
             message += f"\n   Address: {trip_stop.stop.address}"
             if trip_stop.notes:
                 message += f"\n   Notes: {trip_stop.notes}"
@@ -354,7 +354,7 @@ class TripStopListView(View):
             trip_stops = trip_stops.filter(trip_id=trip_id)
 
         data = []
-        for trip_stop in trip_stops.order_by("order"):
+        for trip_stop in trip_stops.order_by("sequence"):
             data.append(
                 {
                     "id": trip_stop.id,
@@ -371,7 +371,7 @@ class TripStopListView(View):
                         else None,
                         "stop_type": trip_stop.stop.stop_type,
                     },
-                    "order": trip_stop.order,
+                    "sequence": trip_stop.sequence,
                     "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
                     "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
                     if trip_stop.actual_arrival_datetime
@@ -415,7 +415,7 @@ class TripStopDetailView(View):
                     else None,
                     "stop_type": trip_stop.stop.stop_type,
                 },
-                "order": trip_stop.order,
+                "sequence": trip_stop.sequence,
                 "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
                 "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
                 if trip_stop.actual_arrival_datetime
@@ -435,7 +435,7 @@ class TripStopDetailView(View):
 
         try:
             data = json.loads(request.body)
-            trip_stop.order = data.get("order", trip_stop.order)
+            trip_stop.sequence = data.get("sequence", trip_stop.sequence)
             trip_stop.planned_arrival_time = data.get(
                 "planned_arrival_time", trip_stop.planned_arrival_time
             )
@@ -459,7 +459,7 @@ class TripStopDetailView(View):
                         else None,
                         "stop_type": trip_stop.stop.stop_type,
                     },
-                    "order": trip_stop.order,
+                    "sequence": trip_stop.sequence,
                     "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
                     "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
                     if trip_stop.actual_arrival_datetime
@@ -480,15 +480,15 @@ class TripStopDetailView(View):
             return JsonResponse({"error": "Trip stop not found"}, status=404)
 
         trip = trip_stop.trip
-        deleted_order = trip_stop.order
+        deleted_sequence = trip_stop.sequence
 
         # Delete the trip stop
         trip_stop.delete()
 
         # Reorder remaining stops to close gaps
         remaining_stops = TripStop.objects.filter(
-            trip=trip, order__gt=deleted_order
-        ).order_by("order")
+            trip=trip, sequence__gt=deleted_sequence
+        ).order_by("sequence")
 
         # Shift all stops with higher order numbers down by 1
         for stop in remaining_stops:
@@ -504,13 +504,12 @@ class TripStopReorderView(View):
         """Reorder trip stops for a given trip"""
         try:
             data = json.loads(request.body)
-            new_orders = data.get(
-                "orders", []
-            )  # Expected format: [{'id': stop_id, 'order': new_order}, ...]
+            # Support both 'orders' (legacy) and 'sequences' (new) parameter names
+            new_sequences = data.get("sequences") or data.get("orders", [])
 
-            logger.info(f"Reordering stops for trip {trip_pk}: {new_orders}")
+            logger.info(f"Reordering stops for trip {trip_pk}: {new_sequences}")
 
-            if not new_orders:
+            if not new_sequences:
                 return JsonResponse({"error": "No orders provided"}, status=400)
 
             # Verify the trip exists
@@ -521,7 +520,7 @@ class TripStopReorderView(View):
 
             with transaction.atomic():
                 # Validate that all provided stop IDs belong to this trip
-                provided_stop_ids = [item["id"] for item in new_orders]
+                provided_stop_ids = [item["id"] for item in new_sequences]
                 existing_stops = TripStop.objects.filter(
                     trip=trip, id__in=provided_stop_ids
                 )
@@ -534,22 +533,24 @@ class TripStopReorderView(View):
 
                 # First, set all orders to very high values to avoid constraint conflicts
                 # Use values starting from 10000 to avoid conflicts with existing orders
-                for i, order_item in enumerate(new_orders):
-                    trip_stop = TripStop.objects.get(id=order_item["id"], trip=trip)
-                    trip_stop.order = 10000 + i  # Use high values temporarily
+                for i, sequence_item in enumerate(new_sequences):
+                    trip_stop = TripStop.objects.get(id=sequence_item["id"], trip=trip)
+                    trip_stop.sequence = 10000 + i  # Use high values temporarily
                     trip_stop.save()
 
                 # Then set the final order values
-                for order_item in new_orders:
-                    trip_stop = TripStop.objects.get(id=order_item["id"], trip=trip)
-                    trip_stop.order = order_item["order"]
+                for sequence_item in new_sequences:
+                    trip_stop = TripStop.objects.get(id=sequence_item["id"], trip=trip)
+                    # Support both 'sequence' (new) and 'order' (legacy) field names in data
+                    new_seq = sequence_item.get("sequence") or sequence_item.get("order")
+                    trip_stop.sequence = new_seq
                     trip_stop.save()
 
                 # Validate that pickups happen before deliveries
                 validate_pickup_before_delivery(trip)
 
             # Return updated trip stops
-            updated_stops = TripStop.objects.filter(trip=trip).order_by("order")
+            updated_stops = TripStop.objects.filter(trip=trip).order_by("sequence")
             data = []
             for trip_stop in updated_stops:
                 data.append(
@@ -568,7 +569,7 @@ class TripStopReorderView(View):
                             else None,
                             "stop_type": trip_stop.stop.stop_type,
                         },
-                        "order": trip_stop.order,
+                        "sequence": trip_stop.sequence,
                         "planned_arrival_time": trip_stop.planned_arrival_time.isoformat(),
                         "actual_arrival_datetime": trip_stop.actual_arrival_datetime.isoformat()
                         if trip_stop.actual_arrival_datetime
@@ -623,7 +624,7 @@ class TripAddOrderView(View):
                     "message": f"Successfully added order {order.order_number} to trip",
                     "pickup_trip_stop": {
                         "id": pickup_ts.id,
-                        "order": pickup_ts.order,
+                        "sequence": pickup_ts.sequence,
                         "planned_arrival_time": pickup_ts.planned_arrival_time.isoformat(),
                         "stop": {
                             "id": pickup_ts.stop.id,
@@ -633,7 +634,7 @@ class TripAddOrderView(View):
                     },
                     "delivery_trip_stop": {
                         "id": delivery_ts.id,
-                        "order": delivery_ts.order,
+                        "sequence": delivery_ts.sequence,
                         "planned_arrival_time": delivery_ts.planned_arrival_time.isoformat(),
                         "stop": {
                             "id": delivery_ts.stop.id,

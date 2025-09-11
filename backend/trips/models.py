@@ -31,7 +31,7 @@ class Trip(models.Model):
 class TripStop(models.Model):
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='trip_stops')
     stop = models.ForeignKey(Stop, on_delete=models.CASCADE, related_name='trip_stops')
-    order = models.PositiveIntegerField()
+    sequence = models.PositiveIntegerField()
     planned_arrival_time = models.TimeField()
     actual_arrival_datetime = models.DateTimeField(null=True, blank=True)
     actual_departure_datetime = models.DateTimeField(null=True, blank=True)
@@ -39,8 +39,8 @@ class TripStop(models.Model):
     is_completed = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ['order']
-        unique_together = ['trip', 'order']
+        ordering = ['sequence']
+        unique_together = ['trip', 'sequence']
 
     def save(self, *args, skip_validation=False, **kwargs):
         # Only validate for new TripStop instances (not updates) and when not explicitly skipped
@@ -50,4 +50,4 @@ class TripStop(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.trip.name} - Stop {self.order}: {self.stop.name}"
+        return f"{self.trip.name} - Stop {self.sequence}: {self.stop.name}"

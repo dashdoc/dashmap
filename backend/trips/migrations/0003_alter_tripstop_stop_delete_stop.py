@@ -5,19 +5,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('orders', '0001_initial'),
-        ('trips', '0002_stop_latitude_stop_longitude'),
+        ("orders", "0001_initial"),
+        ("trips", "0002_stop_latitude_stop_longitude"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='tripstop',
-            name='stop',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='trip_stops', to='orders.stop'),
+            model_name="tripstop",
+            name="stop",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="trip_stops",
+                to="orders.stop",
+            ),
         ),
         migrations.DeleteModel(
-            name='Stop',
+            name="Stop",
         ),
     ]

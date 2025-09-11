@@ -7,6 +7,19 @@ Vehicle routing backend API built with Django. All endpoints return JSON data.
 http://localhost:8000/api/
 ```
 
+## Root Endpoint
+**GET** `/`
+
+Basic status endpoint that returns API information.
+
+Response:
+```json
+{
+  "status": "ok",
+  "message": "Welcome to Dashmap!"
+}
+```
+
 ## Authentication
 API uses token-based authentication. All endpoints (except login) require a valid authentication token.
 
@@ -316,7 +329,7 @@ All list endpoints return data in this format:
         "contact_phone": "555-0001",
         "notes": "Use rear entrance"
       },
-      "order": 1,
+      "sequence": 1,
       "planned_arrival_time": "09:00:00",
       "actual_arrival_datetime": null,
       "actual_departure_datetime": null,
@@ -352,7 +365,7 @@ Includes all above fields plus:
         "contact_phone": "555-0001",
         "notes": "Use rear entrance"
       },
-      "order": 1,
+      "sequence": 1,
       "planned_arrival_time": "09:00:00",
       "actual_arrival_datetime": null,
       "actual_departure_datetime": null,
@@ -402,7 +415,7 @@ Includes all above fields plus:
     "longitude": "-87.629799",
     "stop_type": "pickup"
   },
-  "order": 1,
+  "sequence": 1,
   "planned_arrival_time": "09:00:00",
   "actual_arrival_datetime": null,
   "actual_departure_datetime": null,
@@ -424,14 +437,14 @@ The `linked_order` field contains the order that uses this stop as either a pick
 
 The field will be `null` if no order is associated with the stop.
 
-#### Trip Stop Order Management
+#### Trip Stop Sequence Management
 
-**Creating Trip Stops with Order Conflicts:**
-When creating a trip stop with an order that already exists, the system automatically shifts existing stops to higher order numbers to make room for the new stop.
+**Creating Trip Stops with Sequence Conflicts:**
+When creating a trip stop with a sequence that already exists, the system automatically shifts existing stops to higher sequence numbers to make room for the new stop.
 
-Example: If a trip has stops with orders [1, 2, 3] and you create a new stop with order=2, the result will be:
-- New stop: order=2
-- Existing stops: orders [1, 3, 4] (original order=2 and order=3 are shifted up)
+Example: If a trip has stops with sequences [1, 2, 3] and you create a new stop with sequence=2, the result will be:
+- New stop: sequence=2
+- Existing stops: sequences [1, 3, 4] (original sequence=2 and sequence=3 are shifted up)
 
 #### Order Completeness Validation
 
@@ -463,7 +476,7 @@ Trips must contain complete order journeys (both pickup and delivery stops). Thi
 Request:
 ```json
 {
-  "order": 1,
+  "sequence": 1,
   "pickup_time": "09:00:00",
   "delivery_time": "14:00:00",
   "notes": "Handle with care"
@@ -476,7 +489,7 @@ Response:
   "message": "Successfully added order ORD-2024-0001 to trip",
   "pickup_trip_stop": {
     "id": 15,
-    "order": 3,
+    "sequence": 3,
     "planned_arrival_time": "09:00:00",
     "stop": {
       "id": 10,
@@ -486,7 +499,7 @@ Response:
   },
   "delivery_trip_stop": {
     "id": 16,
-    "order": 4,
+    "sequence": 4,
     "planned_arrival_time": "14:00:00",
     "stop": {
       "id": 11,
@@ -498,13 +511,13 @@ Response:
 ```
 
 **Deleting Trip Stops:**
-When a trip stop is deleted, remaining stops with higher order numbers are automatically shifted down to close gaps and maintain consecutive ordering.
+When a trip stop is deleted, remaining stops with higher sequence numbers are automatically shifted down to close gaps and maintain consecutive sequencing.
 
-Example: If a trip has stops with orders [1, 2, 3] and you delete the stop with order=2, the result will be:
-- Remaining stops: orders [1, 2] (original order=3 is shifted down to order=2)
+Example: If a trip has stops with sequences [1, 2, 3] and you delete the stop with sequence=2, the result will be:
+- Remaining stops: sequences [1, 2] (original sequence=3 is shifted down to sequence=2)
 
 **Bulk Reordering:**
-Use the reorder endpoint to update multiple trip stop orders in a single transaction.
+Use the reorder endpoint to update multiple trip stop sequences in a single transaction.
 
 **POST** `/api/trips/{trip_id}/reorder-stops/`
 
@@ -512,9 +525,9 @@ Request:
 ```json
 {
   "orders": [
-    {"id": 10, "order": 1},
-    {"id": 11, "order": 2},
-    {"id": 12, "order": 3}
+    {"id": 10, "sequence": 1},
+    {"id": 11, "sequence": 2},
+    {"id": 12, "sequence": 3}
   ]
 }
 ```
@@ -527,7 +540,7 @@ Response:
       "id": 10,
       "trip": 5,
       "stop": {...},
-      "order": 1,
+      "sequence": 1,
       "planned_arrival_time": "09:00:00",
       "actual_arrival_datetime": null,
       "actual_departure_datetime": null,
@@ -538,7 +551,7 @@ Response:
 }
 ```
 
-All trip stop IDs in the request must belong to the specified trip. The response returns all trip stops for the trip in their new order.
+All trip stop IDs in the request must belong to the specified trip. The response returns all trip stops for the trip in their new sequence.
 
 ## Error Responses
 

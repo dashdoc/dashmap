@@ -11,8 +11,8 @@ class StopAdmin(admin.ModelAdmin):
 class TripStopInline(admin.TabularInline):
     model = TripStop
     extra = 0
-    ordering = ['order']
-    fields = ['stop', 'order', 'planned_arrival_time', 'is_completed', 'notes']
+    ordering = ['sequence']
+    fields = ['stop', 'sequence', 'planned_arrival_time', 'is_completed', 'notes']
 
 @admin.register(Trip)
 class TripAdmin(admin.ModelAdmin):
@@ -39,7 +39,7 @@ class TripAdmin(admin.ModelAdmin):
 
 @admin.register(TripStop)
 class TripStopAdmin(admin.ModelAdmin):
-    list_display = ['trip', 'stop', 'order', 'planned_arrival_time', 'is_completed']
+    list_display = ['trip', 'stop', 'sequence', 'planned_arrival_time', 'is_completed']
     search_fields = ['trip__name', 'stop__name']
     list_filter = ['is_completed', 'trip__status']
-    ordering = ['trip', 'order']
+    ordering = ['trip', 'sequence']
