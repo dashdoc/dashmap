@@ -39,7 +39,7 @@
     },
     "launchFrontend": {
       "name": "Launch frontend",
-      "command": "cd frontend && npm run dev",
+      "command": "cd frontend && VITE_API_BASE_URL=https://$(hostname)-8000.csb.app/api/ npm run dev",
       "runAtStart": true,
       "preview": {
         "port": 5173
