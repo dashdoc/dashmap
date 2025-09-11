@@ -490,9 +490,9 @@ class TripStopDetailView(View):
             trip=trip, sequence__gt=deleted_sequence
         ).order_by("sequence")
 
-        # Shift all stops with higher order numbers down by 1
+        # Shift all stops with higher sequence numbers down by 1
         for stop in remaining_stops:
-            stop.order -= 1
+            stop.sequence -= 1
             stop.save()
 
         return JsonResponse({}, status=204)
