@@ -2,12 +2,28 @@
   // These tasks will run in order when initializing your CodeSandbox project.
   "setupTasks": [
     {
-      "command": "cd frontend && npm install",
-      "name": "Install frontend deps"
+      "name": "Install frontend deps",
+      "command": "cd frontend && npm install"
     },
     {
-      "command": "cd backend && uv sync",
-      "name": "Install backend deps"
+      "name": "Install uv",
+      "command": "curl -LsSf https://astral.sh/uv/install.sh | sh"
+    },
+    {
+      "name": "Add uv bin",
+      "command": "source $HOME/.local/bin/env"
+    },
+    {
+      "name": "Install backend deps",
+      "command": "cd backend && /root/.local/bin/uv sync"
+    },
+    {
+      "name": "Run migrations",
+      "command": "cd backend && /root/.local/bin/uv run manage.py migrate"
+    },
+    {
+      "name": "Seed db",
+      "command": "cd backend && /root/.local/bin/uv run manage.py reset_db --confirm"
     }
   ],
 
@@ -15,8 +31,19 @@
   "tasks": {
     "launchBackend": {
       "name": "Launch backend",
-      "command": "cd backend && uv run python manage.py runserver",
-      "runAtStart": true
+      "command": "cd backend && /root/.local/bin/uv run python manage.py runserver",
+      "runAtStart": true,
+      "preview": {
+        "port": 8000
+      }
+    },
+    "launchFrontend": {
+      "name": "Launch frontend",
+      "command": "cd frontend && npm run dev",
+      "runAtStart": true,
+      "preview": {
+        "port": 5173
+      }
     }
   }
 }
