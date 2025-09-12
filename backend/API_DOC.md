@@ -180,14 +180,14 @@ All list endpoints return data in this format:
 ## Vehicles
 
 ### List/Create Vehicles
-- **GET** `/api/vehicles/` - List all vehicles
+- **GET** `/api/vehicles/` - List all non-deleted vehicles
 - **GET** `/api/vehicles/?company={id}` - Filter by company
 - **POST** `/api/vehicles/` - Create new vehicle
 
 ### Vehicle Details
 - **GET** `/api/vehicles/{id}/` - Get vehicle details
 - **PUT** `/api/vehicles/{id}/` - Update vehicle
-- **DELETE** `/api/vehicles/{id}/` - Delete vehicle
+- **DELETE** `/api/vehicles/{id}/` - Soft delete vehicle (marks as deleted, doesn't remove from database)
 
 **Vehicle Object:**
 ```json

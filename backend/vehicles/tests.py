@@ -137,8 +137,9 @@ class VehicleAPITestCase(TestCase, AuthenticatedTestMixin):
         response = self.authenticated_request('DELETE', f'/api/vehicles/{self.vehicle.id}/')
         self.assertEqual(response.status_code, 204)
 
-        # Verify deletion
-        self.assertFalse(Vehicle.objects.filter(id=self.vehicle.id).exists())
+        # Verify soft deletion - vehicle should have deleted_at timestamp set
+        self.vehicle.refresh_from_db()
+        self.assertIsNotNone(self.vehicle.deleted_at)
 
     def test_get_nonexistent_vehicle(self):
         response = self.authenticated_request('GET', '/api/vehicles/999/')

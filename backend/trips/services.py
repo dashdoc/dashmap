@@ -240,13 +240,13 @@ def validate_pickup_before_delivery(trip: Trip) -> None:
 
         # If both pickup and delivery exist, pickup must come before delivery
         if pickup_positions and delivery_positions:
-            max_pickup_pos = max(pickup_positions)
-            max_delivery_pos = max(delivery_positions)
+            min_pickup_pos = min(pickup_positions)
+            min_delivery_pos = min(delivery_positions)
 
-            if max_pickup_pos >= max_delivery_pos:
+            if min_pickup_pos <= min_delivery_pos:
                 raise TripValidationError(
-                    f"Order {order.order_number} has delivery stop (position {max_delivery_pos}) "
-                    f"before or at same position as pickup stop (position {max_pickup_pos}). "
+                    f"Order {order.order_number} has delivery stop (position {min_delivery_pos}) "
+                    f"before or at same position as pickup stop (position {min_pickup_pos}). "
                     f"Pickup must occur before delivery."
                 )
 
