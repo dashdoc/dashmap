@@ -14,11 +14,17 @@ export const Layout: React.FC<LayoutProps> = ({
   const bgColor = useColorModeValue('white', 'gray.800')
 
   return (
-    <Flex minH="100vh" w="100vw">
+    <Flex h="100vh" w="100vw" overflow="hidden">
       <Sidebar />
 
-      {/* Main content */}
-      <Box flex={1} bg={bgColor} p={isFullScreen ? 0 : 6} overflow="hidden">
+      {/* Main content needs its own scroll container so the sidebar stays fixed */}
+      <Box
+        flex={1}
+        h="100%"
+        bg={bgColor}
+        p={isFullScreen ? 0 : 6}
+        overflowY="auto"
+      >
         {children}
       </Box>
     </Flex>

@@ -30,7 +30,7 @@ export const Sidebar: React.FC = () => {
   ]
 
   return (
-    <Box w="250px" flexShrink={0} p={6} shadow="lg" bg="blue.900">
+    <Box w="250px" flexShrink={0} p={6} shadow="lg" bg="blue.900" h="100vh">
       <Flex direction="column" h="100%">
         <Heading size="lg" color="white" mb={8}>
           Dashmap
