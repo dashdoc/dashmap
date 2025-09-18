@@ -1,9 +1,8 @@
 {
     "name": "node+python+uv (frontend/backend)",
-    "image": "mcr.microsoft.com/devcontainers/base:debian",
+    "image": "python:3.12",
     "features": {
-      "ghcr.io/devcontainers/features/node:1": { "version": "22" },
-      "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+      "ghcr.io/devcontainers/features/node:1": { "version": "22" }
     },
     "containerEnv": {
       "UV_PROJECT_ENVIRONMENT": ".venv",
