@@ -228,8 +228,8 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
 
     // Create a copy of the trip stops array
     const reorderedStops = Array.from(tripStops)
-    const removed = reorderedStops.splice(sourceIndex, 2)
-    reorderedStops.splice(destinationIndex, 0, removed[1])
+    const [removed] = reorderedStops.splice(sourceIndex, 1)
+    reorderedStops.splice(destinationIndex, 0, removed)
 
     // Update local state immediately for better UX
     setTripStops(reorderedStops)
