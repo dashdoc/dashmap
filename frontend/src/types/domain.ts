@@ -77,11 +77,11 @@ export interface TripStop {
   actual_departure_datetime: string | null
   notes: string
   is_completed: boolean
-  linked_order?: {
+  linked_order: {
     id: number
     order_number: string
     customer_name: string
-  } | null
+  }
 }
 
 export interface Trip {

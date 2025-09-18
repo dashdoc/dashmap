@@ -393,36 +393,23 @@ export const TripDetailsDrawer: React.FC<TripDetailsDrawerProps> = ({
                                   >
                                     <GripVertical size={16} />
                                   </Box>
-                                  <Box
-                                    minW="24px"
-                                    textAlign="center"
-                                    fontWeight="bold"
-                                    color="blue.600"
-                                    fontSize="sm"
-                                  >
-                                    {index + 1}
-                                  </Box>
                                   <Box flex="1">
                                     <Box fontWeight="medium">
                                       {ts.stop.name}
                                     </Box>
                                     <Box fontSize="sm" color="gray.600" mt={1}>
-                                      Arrival: {ts.planned_arrival_time}
+                                      Arrival: {ts.planned_arrival_time} /{' '}
+                                      <Link
+                                        as={RouterLink}
+                                        to={`/orders/${ts.linked_order.id}`}
+                                        color="blue.500"
+                                        fontSize="sm"
+                                        textDecoration="underline"
+                                        mr={2}
+                                      >
+                                        {ts.linked_order.order_number}
+                                      </Link>
                                     </Box>
-                                    {ts.linked_order && (
-                                      <Flex fontSize="sm" mt={1}>
-                                        <Link
-                                          as={RouterLink}
-                                          to={`/orders/${ts.linked_order.id}`}
-                                          color="blue.500"
-                                          fontSize="sm"
-                                          textDecoration="underline"
-                                          mr={2}
-                                        >
-                                          {ts.linked_order.order_number}
-                                        </Link>
-                                      </Flex>
-                                    )}
                                   </Box>
                                   <Badge
                                     colorScheme={
